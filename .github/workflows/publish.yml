@@ -9,6 +9,17 @@ on:
   pull_request:
     branches:
       - master
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Package to publish"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - authentication
+          - authorization
 
 permissions:
   contents: read
@@ -41,7 +52,7 @@ jobs:
   publish:
     name: Publish to GitHub Packages
     needs: test
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
@@ -62,19 +73,24 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Extract Target Package and Publish
+      - name: Publish Packages
         run: |
-          TAG_NAME="${GITHUB_REF#refs/tags/}"
-          PACKAGE_NAME="${TAG_NAME%%-v*}"
-          
-          echo "Targeting package: packages/${PACKAGE_NAME}"
-          
-          if [ ! -d "packages/${PACKAGE_NAME}" ]; then
-            echo "Error: Directory packages/${PACKAGE_NAME} does not exist."
-            exit 1
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            SELECTED="${{ inputs.package }}"
+            if [ "$SELECTED" = "all" ]; then
+              echo "Publishing all packages..."
+              pnpm -r publish --no-git-checks
+            else
+              echo "Publishing packages/$SELECTED..."
+              cd "packages/$SELECTED"
+              npm publish
+            fi
+          else
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            PACKAGE_NAME="${TAG_NAME%%-v*}"
+            echo "Targeting package from tag: packages/${PACKAGE_NAME}"
+            cd "packages/${PACKAGE_NAME}"
+            npm publish
           fi
-          
-          cd "packages/${PACKAGE_NAME}"
-          npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

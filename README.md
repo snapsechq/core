@@ -1,6 +1,6 @@
-# SnapSec Core (`@snapsechq/*`)
+# Snapsec Core (`@snapsechq/*`)
 
-Core shared libraries and security packages for the SnapSec microservice architecture.
+Core shared libraries and security packages for the Snapsec microservice architecture.
 
 ## Packages
 
