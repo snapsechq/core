@@ -1,0 +1,38 @@
+{
+    "name": "@snapsechq/authentication",
+    "version": "0.1.0",
+    "description": "Standardized, pluggable authentication middleware and strategies for SnapSec microservices",
+    "type": "module",
+    "main": "./src/index.cjs",
+    "module": "./src/index.js",
+    "exports": {
+        ".": {
+            "import": "./src/index.js",
+            "require": "./src/index.cjs"
+        }
+    },
+    "files": [
+        "src"
+    ],
+    "dependencies": {
+        "axios": "^1.7.9",
+        "jsonwebtoken": "^9.0.2"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/snapsechq/core.git",
+        "directory": "packages/authentication"
+    },
+    "keywords": [
+        "snapsec",
+        "security",
+        "authentication",
+        "jwt",
+        "middleware",
+        "express"
+    ],
+    "license": "Apache-2.0"
+}
