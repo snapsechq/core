@@ -20,6 +20,7 @@ on:
           - all
           - authentication
           - authorization
+          - rabbitmq
 
 permissions:
   contents: read

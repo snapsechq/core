@@ -1,14 +1,14 @@
 # Snapsec Core Architecture & Integration Guide
 
-This documentation provides the complete setup, integration, and architecture guide for the Snapsec Core packages (`@snapsechq/authentication` and `@snapsechq/authorization`).
+This documentation provides the complete setup, integration, and architecture guide for the Snapsec Core packages (`@snapsechq/authentication`, `@snapsechq/authorization`, and `@snapsechq/rabbitmq`).
 
-It explains why and how duplicate authentication and authorization logic was extracted from 13+ microservices into a centralized, versioned package suite, how to authenticate requests, and how to enforce standardized role- and resource-level authorization.
+It explains why and how duplicate authentication, authorization, and message broker logic was extracted from 13+ microservices into a centralized, versioned package suite, how to authenticate requests, how to enforce standardized role- and resource-level authorization, and how to orchestrate resilient messaging.
 
 ---
 
 ## Documentation Topics
 
-The documentation is organized into three dedicated topic directories:
+The documentation is organized into four dedicated topic directories:
 
 ### 1. [Setup and Usage](./setup-and-usage/0-table-of-contents.md)
 Contains environment setup, token management, installation instructions, and troubleshooting.
@@ -27,6 +27,12 @@ Covers access control, permission matrices, resource policies, and fluent rule c
 - [1. The 3-Layer Authorization Model](./authorization/1-three-layer-model.md): Identity/Super bypass -> Global RBAC -> Contextual resource policies.
 - [2. Fluent API & Engine Usage](./authorization/2-fluent-api-and-engine.md): Enforcing permissions with `.require()`, `.can()`, and `.withContext()`.
 - [3. Resource Policies & Custom Rules](./authorization/3-resource-policies-and-custom-rules.md): Built-in policies (`assessment`, `vulnerability`, `asset`), registering custom policies via `PolicyRegistry`, and error handling.
+
+### 4. [RabbitMQ (@snapsechq/rabbitmq)](./rabbitmq/0-table-of-contents.md)
+Covers message broker architecture, confirm channels, messaging patterns, connection resilience, and zero-refactoring microservice migration.
+- [1. Overview & Architecture](./rabbitmq/1-overview-and-architecture.md): Centralized broker motivations, dedicated confirm channel, consumer channel pooling, and exponential backoff retry logic.
+- [2. Messaging Patterns & API](./rabbitmq/2-messaging-patterns-and-api.md): Topic exchange (asynchronous domain events), Direct queue (worker tasks), Fanout broadcast, and URL helper API.
+- [3. Service Migration & Adapter Pattern](./rabbitmq/3-service-migration-and-adapter-pattern.md): Zero-refactoring adapter pattern in microservices, preserving 40+ imports, Docker BuildKit secret mount, and PM2 verification.
 
 ---
 

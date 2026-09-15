@@ -1,0 +1,36 @@
+{
+    "name": "@snapsechq/rabbitmq",
+    "version": "0.1.0",
+    "description": "RabbitMQ broker client with automatic reconnection, channel pooling, and event patterns for Snapsec microservices",
+    "type": "module",
+    "main": "./src/index.cjs",
+    "module": "./src/index.js",
+    "exports": {
+        ".": {
+            "import": "./src/index.js",
+            "require": "./src/index.cjs"
+        }
+    },
+    "files": [
+        "src"
+    ],
+    "dependencies": {
+        "amqplib": "^0.10.4"
+    },
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/snapsechq/core.git",
+        "directory": "packages/rabbitmq"
+    },
+    "keywords": [
+        "snapsec",
+        "rabbitmq",
+        "amqp",
+        "message-broker",
+        "events"
+    ],
+    "license": "Apache-2.0"
+}
