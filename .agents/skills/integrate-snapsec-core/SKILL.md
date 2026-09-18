@@ -8,6 +8,7 @@ description: Guides the migration and integration of backend microservices (e.g.
 This skill provides the end-to-end runbook for migrating any Snapsec microservice (e.g., `backend/ASM`, `backend/VS`, `backend/was`, `backend/AssetInventory`) to use the centralized packages from `backend/core`:
 - `@snapsechq/authentication`: Multi-strategy authentication (JWT RS256, API Key, Internal Service Key, Intermediary).
 - `@snapsechq/authorization`: 3-layer authorization engine (Identity/Super -> Global RBAC -> Contextual Resource Policy).
+- `@snapsechq/rabbitmq`: Centralized resilient message broker (dedicated confirm channels, pooling, backoff retry, consumer recovery).
 
 ---
 
@@ -15,10 +16,12 @@ This skill provides the end-to-end runbook for migrating any Snapsec microservic
 
 Before and during migration, consult these canonical sources:
 - **Reference Implementation (Auth)**: [backend/VM/src/middlewares/auth/index.js](../../../../VM/src/middlewares/auth/index.js)
+- **Reference Implementation (RabbitMQ)**: [backend/VM/src/services/rabbitmq.service.js](../../../../VM/src/services/rabbitmq.service.js)
 - **Core Architecture Docs**: [docs/0-table-of-contents.md](../../../docs/0-table-of-contents.md)
   - [Setup & Usage Guide](../../../docs/setup-and-usage/0-table-of-contents.md)
   - [Authentication Guide](../../../docs/authentication/0-table-of-contents.md)
   - [Authorization Guide](../../../docs/authorization/0-table-of-contents.md)
+  - [RabbitMQ Guide](../../../docs/rabbitmq/0-table-of-contents.md)
 
 ---
 
@@ -28,11 +31,16 @@ Follow these sequential steps when migrating a microservice:
 
 ### Step 1: Check Prerequisites & Package Installation
 1. Verify that user `.npmrc` (`C:\Users\<user>\.npmrc` on Windows, `~/.npmrc` on Linux) has GitHub Packages access with `@snapsechq:registry=https://npm.pkg.github.com`.
-2. In the target microservice directory (`backend/<ServiceName>`), run:
-   ```bash
-   npm install @snapsechq/authentication @snapsechq/authorization --legacy-peer-deps
-   ```
-   > **Note:** Always include `--legacy-peer-deps` to avoid peer dependency conflicts with legacy Mongoose packages.
+2. In the target microservice directory (`backend/<ServiceName>`), install the packages:
+   - **Locally**:
+     ```bash
+     npm i @snapsechq/authentication @snapsechq/authorization
+     ```
+   - **In Docker (CI / Staging / Production)**:
+     ```bash
+     npm ci
+     ```
+   > **Important**: Do **not** use `--legacy-peer-deps`, `--force`, or any other flags. Use standard `npm i` locally and clean `npm ci` in Docker containers.
 
 ### Step 2: Authentication Integration (The VM Blueprint)
 1. **Locate and Clean Duplicate Strategies**:
