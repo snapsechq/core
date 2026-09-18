@@ -47,7 +47,7 @@ Adhere strictly to these rules during migration:
    - Use standard `npm i @snapsechq/rabbitmq` locally and clean `npm ci` in Docker containers.
 
 5. ✅ **ALWAYS update the Dockerfile syntax and Node version to latest standard**:
-   - Ensure the Dockerfile starts with `# syntax=docker/dockerfile:1.7` (enables BuildKit 1.7 secret mounts) and uses `FROM node:24-alpine` (standardized across all SnapSec services).
+   - Ensure the Dockerfile starts with `# syntax=docker/dockerfile:1` (enables BuildKit 1.7 secret mounts) and uses `FROM node:24-alpine` (standardized across all SnapSec services).
 
 ---
 
