@@ -104,7 +104,13 @@ export function createAuth(config = {}) {
                     lastError = err;
 
                     // If credentials were provided but invalid/expired, do not fall back to subsequent strategies
-                    if (err && err.message && !err.message.includes("missing")) {
+                    if (
+                        err && 
+                        err.message && 
+                        !err.message.includes("missing") &&
+                        !err.message.includes("Invalid token type") &&
+                        !err.message.includes("Intermediary token cannot be used")
+                    ) {
                         break;
                     }
                     // Otherwise, continue to next strategy in chain
