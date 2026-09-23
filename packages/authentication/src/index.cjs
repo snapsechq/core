@@ -254,7 +254,13 @@ function createAuth(config = {}) {
                     break;
                 } catch (err) {
                     lastError = err;
-                    if (err && err.message && !err.message.includes("missing")) {
+                    if (
+                        err && 
+                        err.message && 
+                        !err.message.includes("missing") &&
+                        !err.message.includes("Invalid token type") &&
+                        !err.message.includes("Intermediary token cannot be used")
+                    ) {
                         break;
                     }
                 }

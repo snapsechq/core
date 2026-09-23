@@ -1,6 +1,6 @@
 {
     "name": "@snapsechq/authentication",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Standardized, pluggable authentication middleware and strategies for SnapSec microservices",
     "type": "module",
     "main": "./src/index.cjs",
