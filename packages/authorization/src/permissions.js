@@ -76,6 +76,13 @@ export const DefaultRolePermissions = Object.freeze({
         "report:read",
         "report:create",
         "report:delete",
+        "member:update_teams",
+        "member:update_role",
+        "member:update_access",
+        "member:lock",
+        "member:unlock",
+        "member:regenerate_password",
+        "member:update_2fa",
     ],
     Manager: [
         "assessment:read",

@@ -94,6 +94,8 @@ const DefaultRolePermissions = Object.freeze({
         "vulnerability:read", "vulnerability:create", "vulnerability:update", "vulnerability:delete", "vulnerability:export",
         "asset:read", "asset:create", "asset:update", "asset:delete",
         "report:read", "report:create", "report:delete",
+        "member:update_teams", "member:update_role", "member:update_access",
+        "member:lock", "member:unlock", "member:regenerate_password", "member:update_2fa"
     ],
     Manager: [
         "assessment:read", "assessment:create", "assessment:update", "assessment:export",

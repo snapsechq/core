@@ -1,6 +1,6 @@
 {
     "name": "@snapsechq/authorization",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Standardized authorization engine for SnapSec applications with RBAC and Resource-Level Policies",
     "type": "module",
     "main": "./src/index.cjs",
