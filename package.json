@@ -1,17 +1,50 @@
 {
-    "name": "snapsec-core",
-    "version": "0.1.0",
-    "private": true,
+    "name": "@snapsechq/core",
+    "version": "0.2.0",
+    "description": "SnapSec Core Platform Utilities: Authentication, Authorization, and RabbitMQ",
     "type": "module",
+    "main": "./src/index.cjs",
+    "module": "./src/index.js",
+    "exports": {
+        ".": {
+            "import": "./src/index.js",
+            "require": "./src/index.cjs"
+        },
+        "./authentication": {
+            "import": "./src/authentication/index.js",
+            "require": "./src/authentication/index.cjs"
+        },
+        "./authorization": {
+            "import": "./src/authorization/index.js",
+            "require": "./src/authorization/index.cjs"
+        },
+        "./rabbitmq": {
+            "import": "./src/rabbitmq/index.js",
+            "require": "./src/rabbitmq/index.cjs"
+        }
+    },
+    "files": [
+        "src"
+    ],
+    "publishConfig": {
+        "registry": "https://npm.pkg.github.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/snapsechq/core.git"
+    },
     "scripts": {
-        "test": "vitest run",
+        "test": "vitest run --no-watch",
         "test:watch": "vitest"
+    },
+    "dependencies": {
+        "amqplib": "^0.10.4",
+        "axios": "^1.7.9",
+        "jsonwebtoken": "^9.0.2"
     },
     "devDependencies": {
         "vitest": "^2.1.8"
     },
     "packageManager": "pnpm@9.15.0",
-    "dependencies": {
-        "amqplib": "^0.10.4"
-    }
+    "license": "Apache-2.0"
 }
