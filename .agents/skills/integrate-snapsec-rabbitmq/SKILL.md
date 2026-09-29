@@ -1,13 +1,13 @@
 ---
 name: integrate-snapsec-rabbitmq
-description: Guides migrating and integrating backend microservices (e.g., ASM, VS, WAS, AssetInventory, notify, Auth, VM) to use @snapsechq/rabbitmq from backend/core. Covers the zero-refactoring adapter pattern for both CommonJS and ES Modules, connection resilience, Docker BuildKit secret mounts, and PM2 verification.
+description: Guides migrating and integrating backend microservices (e.g., ASM, VS, WAS, AssetInventory, notify, Auth, VM) to use rabbitmq from @snapsechq/core. Covers the zero-refactoring adapter pattern for both CommonJS and ES Modules, connection resilience, Docker BuildKit secret mounts, and PM2 verification.
 ---
 
 # Integrate Snapsec RabbitMQ Skill
 
-This skill provides a complete, battle-tested runbook for migrating any Snapsec microservice (e.g., `backend/ASM`, `backend/VS`, `backend/was`, `backend/AssetInventory`, `backend/notify`, `backend/Auth`) to use the centralized message broker package: **`@snapsechq/rabbitmq`**.
+This skill provides a complete, battle-tested runbook for migrating any Snapsec microservice (e.g., `backend/ASM`, `backend/VS`, `backend/was`, `backend/AssetInventory`, `backend/notify`, `backend/Auth`) to use the centralized message broker from: **`@snapsechq/core`**.
 
-`@snapsechq/rabbitmq` centralizes and standardizes RabbitMQ messaging across all microservices:
+The RabbitMQ module in `@snapsechq/core` centralizes and standardizes RabbitMQ messaging across all microservices:
 1. **Dedicated Confirm Channel**: Uses `createConfirmChannel` for reliable publishing with acknowledgment.
 2. **Consumer Channel Pooling**: Allocates isolated channels per consumer with prefetch throttling (`prefetch: 10`).
 3. **Resilient Reconnection**: Exponential backoff with jitter (`MAX_RETRIES: 8`, initial delay 1s) prevents thundering herds.
@@ -24,7 +24,7 @@ Before and during migration, consult these canonical sources:
   - [Overview & Architecture](file:///backend/core/docs/rabbitmq/1-overview-and-architecture.md)
   - [Messaging Patterns & API](file:///backend/core/docs/rabbitmq/2-messaging-patterns-and-api.md)
   - [Service Migration & Adapter Pattern](file:///backend/core/docs/rabbitmq/3-service-migration-and-adapter-pattern.md)
-- **Core Package Implementation**: `backend/core/packages/rabbitmq/`
+- **Core Package Implementation**: `backend/core` (`@snapsechq/core`)
 
 ---
 
@@ -34,17 +34,17 @@ Adhere strictly to these rules during migration:
 
 1. ❌ **NEVER refactor 40+ import statements across workers, controllers, and services**:
    - Every microservice already imports `{ mqbroker }` from its local `services/rabbitmq.service.js`.
-   - **ALWAYS use the Adapter Pattern**: Replace the internal 291-line `RabbitMQ` class inside `services/rabbitmq.service.js` with an adapter delegating to `@snapsechq/rabbitmq`.
+   - **ALWAYS use the Adapter Pattern**: Replace the internal 291-line `RabbitMQ` class inside `services/rabbitmq.service.js` with an adapter delegating to `@snapsechq/core`.
    - Modifying every worker and controller introduces massive regression risk. Exactly **one file** (`rabbitmq.service.js`) should change.
 
 2. ❌ **NEVER hardcode RabbitMQ URLs or passwords in code**:
-   - **ALWAYS** use the built-in `buildRabbitmqUrl()` utility from `@snapsechq/rabbitmq` or delegate to the service's existing `utils.buildRabbitmqUrl()`.
+   - **ALWAYS** use the built-in `buildRabbitmqUrl()` utility or delegate to the service's existing `utils.buildRabbitmqUrl()`.
 
 3. ❌ **NEVER commit tokens or `.npmrc` files into git**:
    - **ALWAYS** use Docker BuildKit secret mounts (`--mount=type=secret,id=github_pat`) in Dockerfiles.
 
 4. ❌ **NEVER use `--force` or `--legacy-peer-deps` unless resolving peer conflicts**:
-   - Use standard `npm i @snapsechq/rabbitmq` locally and clean `npm ci` in Docker containers.
+   - Use standard `npm i @snapsechq/core` locally and clean `npm ci` in Docker containers.
 
 5. ✅ **ALWAYS update the Dockerfile syntax and Node version to latest standard**:
    - Ensure the Dockerfile starts with `# syntax=docker/dockerfile:1` (enables BuildKit 1.7 secret mounts) and uses `FROM node:24-alpine` (standardized across all SnapSec services).
@@ -64,12 +64,12 @@ Inspect the target microservice `package.json` and existing broker file:
 
 ---
 
-### Step 2: Install `@snapsechq/rabbitmq`
+### Step 2: Install `@snapsechq/core`
 
 In the target microservice directory (`backend/<ServiceName>`):
 
 ```bash
-npm install @snapsechq/rabbitmq
+npm install @snapsechq/core
 ```
 
 Ensure user `.npmrc` has GitHub Packages configured with `@snapsechq:registry=https://npm.pkg.github.com`.
@@ -87,17 +87,9 @@ Replace `src/services/rabbitmq.service.js` with:
 ```javascript
 /**
  * RabbitMQ Broker for <ServiceName>
- * Powered by @snapsechq/rabbitmq
+ * Powered by @snapsechq/core
  */
-let rabbitmqCore;
-try {
-    rabbitmqCore = require("@snapsechq/rabbitmq");
-} catch (e) {
-    // Local monorepo fallback during development
-    rabbitmqCore = require("../../../core/packages/rabbitmq/src/index.cjs");
-}
-
-const { createMqBroker } = rabbitmqCore;
+const { createMqBroker } = require("@snapsechq/core");
 const utils = require("../utils/utils"); // Adjust path if needed
 
 const mqbroker = createMqBroker({
@@ -114,9 +106,9 @@ Replace `services/rabbitmq.service.js` with:
 ```javascript
 /**
  * RabbitMQ Broker for <ServiceName>
- * Powered by @snapsechq/rabbitmq
+ * Powered by @snapsechq/core
  */
-import { createMqBroker } from "@snapsechq/rabbitmq";
+import { createMqBroker } from "@snapsechq/core";
 import { buildRabbitmqUrl } from "../utils/utils.js"; // Adjust path if needed
 
 export const mqbroker = createMqBroker({

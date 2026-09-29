@@ -2,10 +2,10 @@
 
 ## The Default `authorization` Engine
 
-`@snapsechq/authorization` exports a default singleton instance, `authorization`, that provides a fluent builder syntax for checking and enforcing access control.
+The authorization module in `@snapsechq/core` exports a default singleton instance, `authorization`, that provides a fluent builder syntax for checking and enforcing access control.
 
 ```javascript
-const { authorization } = require("@snapsechq/authorization");
+const { authorization } = require("@snapsechq/core");
 ```
 
 ---

@@ -2,7 +2,7 @@
 
 ## The `createAuth` Factory
 
-The `@snapsechq/authentication` package does not rely on global singletons or hardcoded secrets. Instead, it exports a factory function, `createAuth(config)`, which allows each microservice to inject its local keys and environment variables.
+The authentication module of `@snapsechq/core` does not rely on global singletons or hardcoded secrets. Instead, it exports a factory function, `createAuth(config)`, which allows each microservice to inject its local keys and environment variables.
 
 ### Configuration Parameters
 
@@ -27,7 +27,7 @@ Inside each microservice's authentication middleware file (typically `src/middle
 
 ```javascript
 const path = require("path");
-const { createAuth } = require("@snapsechq/authentication");
+const { createAuth } = require("@snapsechq/core");
 
 const authSuite = createAuth({
   // Path to the shared RSA public key

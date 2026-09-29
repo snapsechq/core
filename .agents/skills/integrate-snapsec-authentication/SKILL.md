@@ -1,19 +1,19 @@
 ---
 name: integrate-snapsec-authentication
-description: Guides the migration and integration of backend microservices (e.g., AIM, ASM, WAS, AssetInventory, VS) to use @snapsechq/authentication from backend/core. Use whenever the user asks to integrate, migrate, configure, or troubleshoot authentication in any Snapsec microservice.
+description: Guides the migration and integration of backend microservices (e.g., AIM, ASM, WAS, AssetInventory, VS) to use authentication from @snapsechq/core. Use whenever the user asks to integrate, migrate, configure, or troubleshoot authentication in any Snapsec microservice.
 ---
 
 # Integrate Snapsec Authentication Skill
 
-This skill provides a step-by-step runbook for integrating `@snapsechq/authentication` into any Snapsec backend microservice (e.g., `backend/ASM`, `backend/WAS`, `backend/AssetInventory`, `backend/VS`, `backend/AIM`).
+This skill provides a step-by-step runbook for integrating the authentication module from `@snapsechq/core` into any Snapsec backend microservice (e.g., `backend/ASM`, `backend/WAS`, `backend/AssetInventory`, `backend/VS`, `backend/AIM`).
 
-`@snapsechq/authentication` standardizes multi-strategy authentication, RS256 token verification, organization license verification, internal service key handshakes, API key validation, and request decoration across the entire Snapsec platform.
+The authentication module in `@snapsechq/core` standardizes multi-strategy authentication, RS256 token verification, organization license verification, internal service key handshakes, API key validation, and request decoration across the entire Snapsec platform.
 
 ---
 
 ## Architecture Overview
 
-`@snapsechq/authentication` provides a unified strategy-driven authentication pipeline:
+`@snapsechq/core` provides a unified strategy-driven authentication pipeline:
 
 ```
                       Incoming Request
@@ -49,7 +49,7 @@ This skill provides a step-by-step runbook for integrating `@snapsechq/authentic
 
 ## Canonical Reference Implementations
 - **Reference Service**: `backend/VM/src/middlewares/auth/index.js`
-- **Core Package**: `backend/core/packages/authentication`
+- **Core Package**: `backend/core` (`@snapsechq/core`)
 - **Documentation**: `backend/core/docs/authentication/`
 
 ---
@@ -66,7 +66,7 @@ This skill provides a step-by-step runbook for integrating `@snapsechq/authentic
    - **Locally**:
      ```bash
      cd backend/<ServiceName>
-     npm i @snapsechq/authentication
+     npm i @snapsechq/core
      ```
    - **In Docker (CI / Staging / Production)**:
      ```bash
@@ -100,9 +100,9 @@ Create or update `src/middlewares/auth/index.js` to instantiate `createAuth`:
 ```javascript
 /**
  * Unified Authentication Middleware for <ServiceName>
- * Powered by @snapsechq/authentication
+ * Powered by @snapsechq/core
  */
-const createAuth = require("@snapsechq/authentication");
+const { createAuth } = require("@snapsechq/core");
 const { appConfig } = require("../../config/app-config"); // Adjust path as needed
 
 const authSuite = createAuth({

@@ -1,6 +1,6 @@
 # Setup and Usage Guide
 
-This guide details how to configure your development environment, authenticate with GitHub Packages, install `@snapsechq/authentication` and `@snapsechq/authorization` into Snapsec microservices, and troubleshoot common dependency issues.
+This guide details how to configure your development environment, authenticate with GitHub Packages, install `@snapsechq/core` into Snapsec microservices, and troubleshoot common dependency issues.
 
 ---
 

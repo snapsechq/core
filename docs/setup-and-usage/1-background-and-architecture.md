@@ -31,35 +31,36 @@ This model produced several critical drawbacks:
 
 ## The Snapsec Core Solution
 
-Snapsec Core resolves this issue by isolating authentication and authorization into two standalone, versioned npm packages published under the `@snapsechq` organization:
+Snapsec Core resolves this issue by consolidating authentication, authorization, and message broker logic into a single, unified npm package published under the `@snapsechq` organization: **`@snapsechq/core`**.
 
 ```
                             ┌────────────────────────┐
-                            │      Snapsec Core      │
-                            │       (Monorepo)       │
+                            │    @snapsechq/core     │
+                            │   (Unified Package)    │
                             └───────────┬────────────┘
                                         │
-                 ┌──────────────────────┴──────────────────────┐
-                 ▼                                             ▼
-     @snapsechq/authentication                     @snapsechq/authorization
-     - RS256 JWT Verification                      - 3-Layer Authorization Engine
-     - API Key Validation                          - Global Role-Based Access Control
-     - Inter-Service Auth                          - Resource Policies (VM, ASM, Asset)
-     - Preconfigured Middlewares                   - Fluent Policy Builder API
-                 │                                             │
-                 └──────────────────────┬──────────────────────┘
+                 ┌──────────────────────┼──────────────────────┐
+                 ▼                      ▼                      ▼
+           Authentication         Authorization             RabbitMQ
+       - RS256 JWT Verify      - 3-Layer Engine       - Confirm Channel
+       - API Key Validation    - Global RBAC          - Connection Resilience
+       - Inter-Service Auth    - Resource Policies    - Consumer Pooling
+       - Auth Middlewares      - Fluent Policy API    - Topology Management
+                 │                      │                      │
+                 └──────────────────────┼──────────────────────┘
                                         │
                ┌────────────────────────┼────────────────────────┐
                ▼                        ▼                        ▼
        backend/VM Service       backend/ASM Service      backend/VS Service
-       - npm dependency         - npm dependency         - npm dependency
-       - Zero duplicate auth    - Zero duplicate auth    - Zero duplicate auth
+       - @snapsechq/core        - @snapsechq/core        - @snapsechq/core
+       - Zero duplicate auth    - Zero duplicate auth    - Zero duplicate broker
 ```
 
-1. **`@snapsechq/authentication`**: Responsible for verifying caller identity across four distinct strategies (JWT, API Keys, Internal Service Keys, and Intermediary Gateway headers).
-2. **`@snapsechq/authorization`**: Responsible for determining whether an authenticated caller has permission to perform an action on a specific resource using a 3-layer authorization model.
+1. **Authentication Module**: Responsible for verifying caller identity across four distinct strategies (JWT, API Keys, Internal Service Keys, and Intermediary Gateway headers).
+2. **Authorization Module**: Responsible for determining whether an authenticated caller has permission to perform an action on a specific resource using a 3-layer authorization model.
+3. **RabbitMQ Module**: Responsible for providing resilient message queuing, confirm publishing, connection retries with exponential backoff, and consumer pool management.
 
-Each microservice installs these packages as standard dependencies and passes its own configuration secrets upon initialization.
+Each microservice installs `@snapsechq/core` as a standard dependency and imports only the modules it needs.
 
 ---
 

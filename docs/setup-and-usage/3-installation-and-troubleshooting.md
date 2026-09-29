@@ -2,18 +2,17 @@
 
 ## 1. Installing Packages in a Microservice
 
-Once your user-level `.npmrc` is configured with a valid token, navigate to the target microservice folder and install the packages:
+Once your user-level `.npmrc` is configured with a valid token, navigate to the target microservice folder and install the package:
 
 ```bash
-npm install @snapsechq/authentication @snapsechq/authorization
+npm install @snapsechq/core
 ```
 
-Verify that the dependencies appear in the service's `package.json`:
+Verify that the dependency appears in the service's `package.json`:
 
 ```json
 "dependencies": {
-  "@snapsechq/authentication": "^0.1.0",
-  "@snapsechq/authorization": "^0.1.0"
+  "@snapsechq/core": "^0.2.0"
 }
 ```
 
@@ -44,7 +43,7 @@ Third-party documentation packages (like `express-oas-generator`) declare strict
 Run `npm install` with the `--legacy-peer-deps` flag:
 
 ```bash
-npm install @snapsechq/authentication @snapsechq/authorization --legacy-peer-deps
+npm install @snapsechq/core --legacy-peer-deps
 ```
 
 The `--legacy-peer-deps` flag tells npm to ignore conflicting peer dependencies (behaving like npm v6) and install the requested packages cleanly.
@@ -53,16 +52,15 @@ The `--legacy-peer-deps` flag tells npm to ignore conflicting peer dependencies 
 
 ## 3. Local Development & Testing Workflow
 
-When adding features or debugging `@snapsechq/authentication` or `@snapsechq/authorization`, you can test changes locally without publishing intermediate versions to GitHub Packages.
+When adding features or debugging `@snapsechq/core`, you can test changes locally without publishing intermediate versions to GitHub Packages.
 
 ### Step 1: Link Local Packages via File Path
-In the microservice's `package.json`, replace the version strings with relative `file:` paths to the local monorepo packages:
+In the microservice's `package.json`, replace the version string with a relative `file:` path to the local monorepo package:
 
 ```json
 {
   "dependencies": {
-    "@snapsechq/authentication": "file:../core/packages/authentication",
-    "@snapsechq/authorization": "file:../core/packages/authorization"
+    "@snapsechq/core": "file:../core"
   }
 }
 ```
@@ -74,7 +72,7 @@ Inside the target microservice directory, execute:
 npm install --legacy-peer-deps
 ```
 
-NPM will symlink the local directory into the microservice's `node_modules`. Any changes made inside `backend/core/packages/` will reflect immediately upon restarting the microservice.
+NPM will symlink the local directory into the microservice's `node_modules`. Any changes made inside `backend/core/` will reflect immediately upon restarting the microservice.
 
 ### Step 3: Revert Before Committing
 > **CRITICAL WARNING:**
@@ -84,7 +82,7 @@ NPM will symlink the local directory into the microservice's `node_modules`. Any
 > 
 > Before committing or opening a pull request:
 > 1. Publish the updated core package to GitHub Packages (or create the required release tag).
-> 2. Revert the service's `package.json` to the semantic version (e.g., `^0.1.0`).
+> 2. Revert the service's `package.json` to the semantic version (e.g., `^0.2.0`).
 > 3. Run `npm install --legacy-peer-deps` to re-sync `package-lock.json`.
 
 ---

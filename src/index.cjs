@@ -11,8 +11,13 @@ const createAuth = authentication.createAuth || authentication;
 const authz = authorization.authorization || authorization;
 const { createMqBroker, RabbitMQ, mqbroker, buildRabbitmqUrl } = rabbitmq;
 
-module.exports = {
-    // Primary Top-Level Primitives (Pattern A)
+// Hybrid callable function for backwards compatibility with `const createAuth = require("@snapsechq/core")`
+function snapsecCore(...args) {
+    return createAuth(...args);
+}
+
+const properties = {
+    // Primary Top-Level Named Exports
     createAuth,
     authorization: authz,
     createMqBroker,
@@ -56,4 +61,7 @@ module.exports = {
     isOwner: authorization.isOwner,
 };
 
-module.exports.default = module.exports;
+Object.assign(snapsecCore, properties);
+snapsecCore.default = snapsecCore;
+
+module.exports = snapsecCore;

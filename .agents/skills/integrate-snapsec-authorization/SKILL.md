@@ -1,13 +1,13 @@
 ---
 name: integrate-snapsec-authorization
-description: Guides migrating and integrating backend microservices (e.g., AIM, ASM, WAS, AssetInventory, VS) to use @snapsechq/authorization from backend/core. Covers the 3-layer authorization model, fluent API (.require/.can), declarative controller checks, service layer checks, custom resource policies, eliminating procedural role checks, and error handling.
+description: Guides migrating and integrating backend microservices (e.g., AIM, ASM, WAS, AssetInventory, VS) to use authorization from @snapsechq/core. Covers the 3-layer authorization model, fluent API (.require/.can), declarative controller checks, service layer checks, custom resource policies, eliminating procedural role checks, and error handling.
 ---
 
 # Integrate Snapsec Authorization Skill
 
-This skill provides a comprehensive runbook for migrating any Snapsec backend microservice (e.g., `backend/ASM`, `backend/WAS`, `backend/AssetInventory`, `backend/VS`, `backend/AIM`) to `@snapsechq/authorization`.
+This skill provides a comprehensive runbook for migrating any Snapsec backend microservice (e.g., `backend/ASM`, `backend/WAS`, `backend/AssetInventory`, `backend/VS`, `backend/AIM`) to the authorization module of `@snapsechq/core`.
 
-`@snapsechq/authorization` centralizes and standardizes authorization across all microservices via a 3-layer model:
+`@snapsechq/core` centralizes and standardizes authorization across all microservices via a 3-layer model:
 1. **Layer 1: Identity & Super Role Bypass** (Fast path for `Super` and `Platform Admin`).
 2. **Layer 2: Global Role-Based Access Control (RBAC)** (Coarse-grained action checks against the canonical role matrix).
 3. **Layer 3: Contextual Resource-Level Policies** (Fine-grained multi-tenancy, collaborator, assignee, and ownership rules).
@@ -18,7 +18,7 @@ This skill provides a comprehensive runbook for migrating any Snapsec backend mi
 - **Reference Middleware**: `backend/VM/src/middlewares/auth/index.js`
 - **Reference Controller**: `backend/VM/src/controllers/assessment.controller.js`
 - **Reference Service**: `backend/VM/src/services/vuln.service.js`
-- **Core Package**: `backend/core/packages/authorization`
+- **Core Package**: `backend/core` (`@snapsechq/core`)
 - **Documentation**: `backend/core/docs/authorization/`
 
 ---
@@ -27,17 +27,17 @@ This skill provides a comprehensive runbook for migrating any Snapsec backend mi
 
 Before writing any authorization code, adhere strictly to these rules:
 
-1. ❌ **NEVER use relative path fallbacks to core** (e.g., `require("../../../../core/packages/authorization")`):
+1. ❌ **NEVER use relative path fallbacks to core**:
    - Relative paths break on staging and production Docker containers where directory hierarchies differ from local dev.
    - **ALWAYS** import directly from the npm package:
      ```javascript
-     const { authorization, Roles, Permissions } = require("@snapsechq/authorization");
+     const { authorization, Roles, Permissions } = require("@snapsechq/core");
      ```
 2. ❌ **NEVER write procedural role string comparisons**:
    - Do NOT write: `if (role === "admin" || role === "Manager")` or `if (["Admin", "Manager"].includes(role))`.
    - **ALWAYS** use canonical constants and helpers:
      ```javascript
-     const { Roles, hasRoleAccess, hasAnyRole } = require("@snapsechq/authorization");
+     const { Roles, hasRoleAccess, hasAnyRole } = require("@snapsechq/core");
      if (hasRoleAccess(role, Roles.MANAGER)) { ... }
      ```
 3. ❌ **NEVER maintain duplicate service-level access helper functions**:
@@ -54,12 +54,12 @@ Before writing any authorization code, adhere strictly to these rules:
 
 ## Step-by-Step Migration Guide
 
-### Step 1: Install `@snapsechq/authorization`
+### Step 1: Install `@snapsechq/core`
 
 - **Locally**:
   ```bash
   cd backend/<ServiceName>
-  npm i @snapsechq/authorization
+  npm i @snapsechq/core
   ```
 - **In Docker (CI / Staging / Production)**:
   ```bash
@@ -75,7 +75,7 @@ Ensure the Express application intercepts `UnauthorizedError` and `ForbiddenErro
 
 In `src/middlewares/error-handler.js` (or `app.js`):
 ```javascript
-const { UnauthorizedError, ForbiddenError } = require("@snapsechq/authorization");
+const { UnauthorizedError, ForbiddenError } = require("@snapsechq/core");
 
 function errorHandler(err, req, res, next) {
   if (err instanceof UnauthorizedError) {
@@ -108,7 +108,7 @@ module.exports = errorHandler;
 In `src/middlewares/auth/index.js`, re-export all core authorization primitives and route-level guards:
 
 ```javascript
-const authz = require("@snapsechq/authorization");
+const authz = require("@snapsechq/core");
 
 const {
   authorization,

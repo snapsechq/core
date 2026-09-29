@@ -1,6 +1,6 @@
-# RabbitMQ Guide (@snapsechq/rabbitmq)
+# RabbitMQ Guide (@snapsechq/core)
 
-This guide covers Snapsec's centralized RabbitMQ messaging infrastructure, connection resilience, messaging patterns (Topic, Direct, Fanout), and how microservices consume `@snapsechq/rabbitmq` with zero refactoring.
+This guide covers Snapsec's centralized RabbitMQ messaging infrastructure in `@snapsechq/core`, connection resilience, messaging patterns (Topic, Direct, Fanout), and how microservices consume the broker with zero refactoring.
 
 ---
 

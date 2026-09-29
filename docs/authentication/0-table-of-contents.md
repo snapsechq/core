@@ -1,6 +1,6 @@
-# Authentication Guide (@snapsechq/authentication)
+# Authentication Guide (@snapsechq/core)
 
-This guide covers how caller identity is verified across Snapsec services, the available authentication strategies, how to initialize the authentication suite, and how to consume preconfigured Express middlewares.
+This guide covers how caller identity is verified across Snapsec services, the available authentication strategies, how to initialize the authentication suite, and how to consume preconfigured Express middlewares from `@snapsechq/core`.
 
 ---
 
@@ -12,7 +12,7 @@ This guide covers how caller identity is verified across Snapsec services, the a
 2. [Service Configuration & Initialization](./2-service-configuration.md)
    - Factory setup using `createAuth(config)`.
    - Configuration parameters (RSA keys, service secrets, Auth service URL).
-   - Migration example from legacy inline auth to `@snapsechq/authentication`.
+   - Integration example using `@snapsechq/core`.
 3. [Express Middlewares & Request Context](./3-express-middlewares-and-context.md)
    - Preconfigured middlewares (`requireAdmin`, `requireWriteAccess`, `requireAuth`, etc.).
    - Request decoration (`req.user`, `req.auth`, `req.service_req`).

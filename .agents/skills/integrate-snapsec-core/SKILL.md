@@ -1,21 +1,19 @@
 ---
 name: integrate-snapsec-core
-description: Guides the migration and integration of backend microservices (e.g. ASM, VS, WAS, AssetInventory) to use @snapsechq/authentication and @snapsechq/authorization from backend/core. Use whenever the user asks to integrate, migrate, or update a microservice with Snapsec Core authentication or authorization.
+description: Guides the migration and integration of backend microservices (e.g. ASM, VS, WAS, AssetInventory) to use the unified @snapsechq/core package from backend/core. Use whenever the user asks to integrate, migrate, or update a microservice with Snapsec Core.
 ---
 
 # Integrate Snapsec Core Skill
 
-This skill provides the end-to-end runbook for migrating any Snapsec microservice (e.g., `backend/ASM`, `backend/VS`, `backend/was`, `backend/AssetInventory`) to use the centralized packages from `backend/core`:
-- `@snapsechq/authentication`: Multi-strategy authentication (JWT RS256, API Key, Internal Service Key, Intermediary).
-- `@snapsechq/authorization`: 3-layer authorization engine (Identity/Super -> Global RBAC -> Contextual Resource Policy).
-- `@snapsechq/rabbitmq`: Centralized resilient message broker (dedicated confirm channels, pooling, backoff retry, consumer recovery).
+This skill provides the end-to-end runbook for migrating any Snapsec microservice (e.g., `backend/ASM`, `backend/VS`, `backend/was`, `backend/AssetInventory`) to use the unified package from `backend/core`:
+- `@snapsechq/core`: Single centralized platform package providing multi-strategy authentication, 3-layer authorization, and resilient RabbitMQ messaging.
 
 ---
 
 ## Reference Implementations & Documentation
 
 Before and during migration, consult these canonical sources:
-- **Reference Implementation (Auth)**: [backend/VM/src/middlewares/auth/index.js](../../../../VM/src/middlewares/auth/index.js)
+- **Reference Implementation (Auth & Authz)**: [backend/VM/src/middlewares/auth/index.js](../../../../VM/src/middlewares/auth/index.js)
 - **Reference Implementation (RabbitMQ)**: [backend/VM/src/services/rabbitmq.service.js](../../../../VM/src/services/rabbitmq.service.js)
 - **Core Architecture Docs**: [docs/0-table-of-contents.md](../../../docs/0-table-of-contents.md)
   - [Setup & Usage Guide](../../../docs/setup-and-usage/0-table-of-contents.md)
@@ -31,10 +29,10 @@ Follow these sequential steps when migrating a microservice:
 
 ### Step 1: Check Prerequisites & Package Installation
 1. Verify that user `.npmrc` (`C:\Users\<user>\.npmrc` on Windows, `~/.npmrc` on Linux) has GitHub Packages access with `@snapsechq:registry=https://npm.pkg.github.com`.
-2. In the target microservice directory (`backend/<ServiceName>`), install the packages:
+2. In the target microservice directory (`backend/<ServiceName>`), install `@snapsechq/core`:
    - **Locally**:
      ```bash
-     npm i @snapsechq/authentication @snapsechq/authorization
+     npm i @snapsechq/core
      ```
    - **In Docker (CI / Staging / Production)**:
      ```bash
@@ -50,10 +48,10 @@ Follow these sequential steps when migrating a microservice:
      Remove-Item -Recurse -Force "src/middlewares/auth/strategies"
      ```
 2. **Refactor Auth Middleware (`src/middlewares/auth/index.js`)**:
-   - Import `createAuth` from `@snapsechq/authentication`.
+   - Import `createAuth` from `@snapsechq/core`.
    - Instantiate `createAuth` using the service's existing config:
      ```javascript
-     const createAuth = require("@snapsechq/authentication");
+     const { createAuth } = require("@snapsechq/core");
      const { appConfig } = require("../../config/app-config"); // adjust path
 
      const authSuite = createAuth({
@@ -89,7 +87,7 @@ Follow these sequential steps when migrating a microservice:
 ### Step 3: Authorization Integration
 1. **Import the Engine**:
    ```javascript
-   const { authorization, defaultPolicyRegistry } = require("@snapsechq/authorization");
+   const { authorization, defaultPolicyRegistry } = require("@snapsechq/core");
    ```
 2. **Evaluate Access on Resource Endpoints**:
    - In controllers or route handlers, enforce access using the fluent API:
@@ -114,7 +112,7 @@ Follow these sequential steps when migrating a microservice:
 4. **Mount Centralized Error Handler**:
    - Ensure the Express app handles `ForbiddenError` and `UnauthorizedError`:
      ```javascript
-     const { ForbiddenError, UnauthorizedError } = require("@snapsechq/authorization");
+     const { ForbiddenError, UnauthorizedError } = require("@snapsechq/core");
 
      app.use((err, req, res, next) => {
        if (err instanceof UnauthorizedError) {

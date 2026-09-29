@@ -13,7 +13,7 @@ Refactoring every single call site across dozens of files would introduce unnece
 Instead, we employ the **Adapter Pattern**:
 1. Keep the microservice's entry file at `src/services/rabbitmq.service.js`.
 2. Delete the 291 lines of duplicate connection and channel pooling boilerplate.
-3. Replace it with a clean, 7-line wrapper delegating directly to `@snapsechq/rabbitmq`.
+3. Replace it with a clean wrapper delegating directly to `@snapsechq/core`.
 
 ---
 
@@ -26,17 +26,9 @@ Inside `backend/VM/src/services/rabbitmq.service.js`:
 ```javascript
 /**
  * RabbitMQ Broker for VM Service
- * Powered by @snapsechq/rabbitmq
+ * Powered by @snapsechq/core
  */
-let rabbitmqCore;
-try {
-    rabbitmqCore = require("@snapsechq/rabbitmq");
-} catch (e) {
-    // Local monorepo fallback during development
-    rabbitmqCore = require("../../../core/packages/rabbitmq/src/index.cjs");
-}
-
-const { createMqBroker } = rabbitmqCore;
+const { createMqBroker } = require("@snapsechq/core");
 const utils = require("../utils/utils");
 
 const mqbroker = createMqBroker({
@@ -51,7 +43,7 @@ module.exports = { mqbroker };
 Inside `src/services/rabbitmq.service.js` (or `services/rabbitmq.service.js`):
 
 ```javascript
-import { createMqBroker } from "@snapsechq/rabbitmq";
+import { createMqBroker } from "@snapsechq/core";
 import { buildRabbitmqUrl } from "../utils/utils.js";
 
 export const mqbroker = createMqBroker({

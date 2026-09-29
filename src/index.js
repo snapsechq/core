@@ -10,10 +10,15 @@ import createAuth from "./authentication/index.js";
 import authorization from "./authorization/index.js";
 import mqbroker from "./rabbitmq/index.js";
 
-export { createAuth, authorization, mqbroker };
+function snapsecCore(...args) {
+    return createAuth(...args);
+}
 
-export default {
+Object.assign(snapsecCore, {
     createAuth,
     authorization,
     mqbroker,
-};
+});
+
+export { createAuth, authorization, mqbroker };
+export default snapsecCore;

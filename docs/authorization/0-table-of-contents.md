@@ -1,6 +1,6 @@
-# Authorization Guide (@snapsechq/authorization)
+# Authorization Guide (@snapsechq/core)
 
-This guide covers Snapsec's multi-layer authorization system, how to perform permission checks using the fluent API engine, how to inspect resources against built-in policies, and how to define custom domain rules.
+This guide covers Snapsec's multi-layer authorization system in `@snapsechq/core`, how to perform permission checks using the fluent API engine, how to inspect resources against built-in policies, and how to define custom domain rules.
 
 ---
 
