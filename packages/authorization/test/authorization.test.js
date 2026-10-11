@@ -170,6 +170,97 @@ describe("@snapsec/authorization", () => {
         });
     });
 
+    describe("ApiKey Policy Checks", () => {
+        const org1 = "org_123";
+        const org2 = "org_999";
+
+        const apiKeyOwnedByDev = {
+            type: "api_key",
+            id: "key_1",
+            orgId: org1,
+            createdBy: "user_dev_1",
+        };
+
+        const apiKeyOwnedByManager = {
+            type: "api_key",
+            id: "key_2",
+            orgId: org1,
+            createdBy: "user_mgr_1",
+        };
+
+        it("allows Admin to delete any API key in their organization", async () => {
+            const adminUser = { id: "user_admin", orgId: org1, role: "Admin" };
+            const canDelete = await authorization
+                .resource(apiKeyOwnedByDev, "api_key")
+                .for(adminUser)
+                .can("delete");
+            expect(canDelete).toBe(true);
+        });
+
+        it("allows Developer to delete their own API key", async () => {
+            const ownerDev = { _id: "user_dev_1", orgId: org1, role: "Developer" };
+            const canDelete = await authorization
+                .resource(apiKeyOwnedByDev, "api_key")
+                .for(ownerDev)
+                .can("delete");
+            expect(canDelete).toBe(true);
+        });
+
+        it("denies Developer from deleting another user's API key", async () => {
+            const otherDev = { _id: "user_dev_2", orgId: org1, role: "Developer" };
+            const canDelete = await authorization
+                .resource(apiKeyOwnedByDev, "api_key")
+                .for(otherDev)
+                .can("delete");
+            expect(canDelete).toBe(false);
+        });
+
+        it("allows Manager to delete their own API key", async () => {
+            const ownerMgr = { _id: "user_mgr_1", orgId: org1, role: "Manager" };
+            const canDelete = await authorization
+                .resource(apiKeyOwnedByManager, "api_key")
+                .for(ownerMgr)
+                .can("delete");
+            expect(canDelete).toBe(true);
+        });
+
+        it("denies Manager from deleting another user's API key", async () => {
+            const otherMgr = { _id: "user_mgr_2", orgId: org1, role: "Manager" };
+            const canDelete = await authorization
+                .resource(apiKeyOwnedByManager, "api_key")
+                .for(otherMgr)
+                .can("delete");
+            expect(canDelete).toBe(false);
+        });
+
+        it("denies cross-organization deletion even for Admin", async () => {
+            const crossOrgAdmin = { id: "user_admin_2", orgId: org2, role: "Admin" };
+            const canDelete = await authorization
+                .resource(apiKeyOwnedByDev, "api_key")
+                .for(crossOrgAdmin)
+                .can("delete");
+            expect(canDelete).toBe(false);
+        });
+
+        it("denies Auditor from deleting API key due to lack of RBAC permission", async () => {
+            const auditor = { id: "user_aud", orgId: org1, role: "Auditor" };
+            const canDelete = await authorization
+                .resource(apiKeyOwnedByDev, "api_key")
+                .for(auditor)
+                .can("delete");
+            expect(canDelete).toBe(false);
+        });
+
+        it("allows Super / Platform Admin to delete any API key unconditionally", async () => {
+            const superUser = { id: "user_super", role: "Super" };
+            const canDelete = await authorization
+                .resource(apiKeyOwnedByDev, "api_key")
+                .for(superUser)
+                .can("delete");
+            expect(canDelete).toBe(true);
+        });
+    });
+
     describe("Custom Policy Registration", () => {
         it("allows registering custom resource policies dynamically", async () => {
             const registry = new PolicyRegistry();

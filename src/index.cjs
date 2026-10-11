@@ -55,6 +55,7 @@ const properties = {
     AssessmentPolicy: authorization.AssessmentPolicy,
     VulnerabilityPolicy: authorization.VulnerabilityPolicy,
     AssetPolicy: authorization.AssetPolicy,
+    ApiKeyPolicy: authorization.ApiKeyPolicy,
     isSuperOrPlatformAdmin: authorization.isSuperOrPlatformAdmin,
     isSameOrganization: authorization.isSameOrganization,
     isCollaborator: authorization.isCollaborator,

@@ -1,6 +1,7 @@
 import { AssessmentPolicy } from "./assessment.policy.js";
 import { VulnerabilityPolicy } from "./vulnerability.policy.js";
 import { AssetPolicy } from "./asset.policy.js";
+import { ApiKeyPolicy } from "./api-key.policy.js";
 
 /**
  * Policy Registry for mapping resource types to policy handlers.
@@ -11,6 +12,7 @@ export class PolicyRegistry {
         this.register("assessment", AssessmentPolicy);
         this.register("vulnerability", VulnerabilityPolicy);
         this.register("asset", AssetPolicy);
+        this.register("api_key", ApiKeyPolicy);
     }
 
     /**
@@ -52,4 +54,5 @@ export {
     AssessmentPolicy,
     VulnerabilityPolicy,
     AssetPolicy,
+    ApiKeyPolicy,
 };

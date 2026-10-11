@@ -63,6 +63,7 @@ const Resources = Object.freeze({
     REPORT: "report",
     ORGANIZATION: "organization",
     USER: "user",
+    API_KEY: "api_key",
 });
 
 const Permissions = Object.freeze({
@@ -84,6 +85,9 @@ const Permissions = Object.freeze({
     REPORT_READ: "report:read",
     REPORT_CREATE: "report:create",
     REPORT_DELETE: "report:delete",
+    API_KEY_READ: "api_key:read",
+    API_KEY_CREATE: "api_key:create",
+    API_KEY_DELETE: "api_key:delete",
 });
 
 const DefaultRolePermissions = Object.freeze({
@@ -94,6 +98,7 @@ const DefaultRolePermissions = Object.freeze({
         "vulnerability:read", "vulnerability:create", "vulnerability:update", "vulnerability:delete", "vulnerability:export",
         "asset:read", "asset:create", "asset:update", "asset:delete",
         "report:read", "report:create", "report:delete",
+        "api_key:read", "api_key:create", "api_key:delete",
         "member:update_teams", "member:update_role", "member:update_access",
         "member:lock", "member:unlock", "member:regenerate_password", "member:update_2fa"
     ],
@@ -102,12 +107,14 @@ const DefaultRolePermissions = Object.freeze({
         "vulnerability:read", "vulnerability:create", "vulnerability:update", "vulnerability:export",
         "asset:read", "asset:create", "asset:update",
         "report:read", "report:create",
+        "api_key:read", "api_key:create", "api_key:delete",
     ],
     Developer: [
         "assessment:read", "assessment:update",
         "vulnerability:read", "vulnerability:update",
         "asset:read", "asset:update",
         "report:read",
+        "api_key:read", "api_key:create", "api_key:delete",
     ],
     Auditor: [
         "assessment:read", "vulnerability:read", "asset:read", "report:read",
@@ -299,12 +306,34 @@ const AssetPolicy = {
     },
 };
 
+const ApiKeyPolicy = {
+    name: "api_key",
+    delete: async ({ user, resource }) => {
+        if (isSuperOrPlatformAdmin(user)) return { granted: true };
+        if (!isSameOrganization(user, resource)) {
+            return { granted: false, reason: "CROSS_ORGANIZATION_ACCESS_DENIED" };
+        }
+        const roles = extractUserRoles(user);
+        if (roles.includes(Roles.ADMIN)) {
+            return { granted: true };
+        }
+        if (roles.includes(Roles.MANAGER) || roles.includes(Roles.DEVELOPER)) {
+            if (isOwner(user, resource)) {
+                return { granted: true };
+            }
+            return { granted: false, reason: "CAN_ONLY_DELETE_OWN_API_KEYS" };
+        }
+        return { granted: false, reason: "INSUFFICIENT_ROLE_FOR_API_KEY_DELETE" };
+    },
+};
+
 class PolicyRegistry {
     constructor() {
         this.policies = new Map();
         this.register("assessment", AssessmentPolicy);
         this.register("vulnerability", VulnerabilityPolicy);
         this.register("asset", AssetPolicy);
+        this.register("api_key", ApiKeyPolicy);
     }
     register(resourceType, policy) {
         if (!resourceType || !policy) throw new Error("resourceType and policy are required");
@@ -474,6 +503,7 @@ module.exports.defaultPolicyRegistry = defaultPolicyRegistry;
 module.exports.AssessmentPolicy = AssessmentPolicy;
 module.exports.VulnerabilityPolicy = VulnerabilityPolicy;
 module.exports.AssetPolicy = AssetPolicy;
+module.exports.ApiKeyPolicy = ApiKeyPolicy;
 module.exports.isSuperOrPlatformAdmin = isSuperOrPlatformAdmin;
 module.exports.isSameOrganization = isSameOrganization;
 module.exports.isCollaborator = isCollaborator;

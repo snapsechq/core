@@ -22,6 +22,7 @@ export const Resources = Object.freeze({
     REPORT: "report",
     ORGANIZATION: "organization",
     USER: "user",
+    API_KEY: "api_key",
 });
 
 /**
@@ -50,6 +51,10 @@ export const Permissions = Object.freeze({
     REPORT_READ: "report:read",
     REPORT_CREATE: "report:create",
     REPORT_DELETE: "report:delete",
+
+    API_KEY_READ: "api_key:read",
+    API_KEY_CREATE: "api_key:create",
+    API_KEY_DELETE: "api_key:delete",
 });
 
 /**
@@ -76,6 +81,9 @@ export const DefaultRolePermissions = Object.freeze({
         "report:read",
         "report:create",
         "report:delete",
+        "api_key:read",
+        "api_key:create",
+        "api_key:delete",
         "member:update_teams",
         "member:update_role",
         "member:update_access",
@@ -98,6 +106,9 @@ export const DefaultRolePermissions = Object.freeze({
         "asset:update",
         "report:read",
         "report:create",
+        "api_key:read",
+        "api_key:create",
+        "api_key:delete",
     ],
     Developer: [
         "assessment:read",
@@ -107,6 +118,9 @@ export const DefaultRolePermissions = Object.freeze({
         "asset:read",
         "asset:update",
         "report:read",
+        "api_key:read",
+        "api_key:create",
+        "api_key:delete",
     ],
     Auditor: [
         "assessment:read",
