@@ -16,6 +16,10 @@ This guide details how to configure your development environment, authenticate w
    - Installing packages into microservices.
    - Resolving peer dependency conflicts (`--legacy-peer-deps`).
    - Local development and testing workflow with file references.
+4. [Versioning & Publishing Workflow](./4-versioning-and-publishing.md)
+   - Step-by-step tag and publish commands (`npm version patch`, `--follow-tags`).
+   - Automated CI/CD publishing to GitHub Packages.
+   - Synchronizing downstream microservices with `snap pkg update`.
 
 ---
 

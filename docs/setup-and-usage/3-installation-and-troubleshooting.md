@@ -87,4 +87,4 @@ NPM will symlink the local directory into the microservice's `node_modules`. Any
 
 ---
 
-[⬅️ Previous: 2. GitHub Packages & .npmrc Setup](./2-github-packages-and-npmrc.md) | [Next: Authentication ➡️](../authentication/0-table-of-contents.md)
+[⬅️ Previous: 2. GitHub Packages & .npmrc Setup](./2-github-packages-and-npmrc.md) | [Next: 4. Versioning & Publishing ➡️](./4-versioning-and-publishing.md)
