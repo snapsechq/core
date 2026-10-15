@@ -30,6 +30,11 @@ describe("@snapsec/authorization", () => {
 
             expect(hasPermission(superUser, "anything:read")).toBe(true);
             expect(hasPermission(adminUser, "assessment:create")).toBe(true);
+            expect(hasPermission(adminUser, "org:manage_members")).toBe(true);
+            expect(hasPermission(adminUser, "org:update")).toBe(true);
+            expect(hasPermission(adminUser, "member:delete")).toBe(true);
+            expect(hasPermission(devUser, "org:manage_members")).toBe(false);
+            expect(hasPermission(devUser, "member:delete")).toBe(false);
             expect(hasPermission(devUser, "assessment:create")).toBe(false);
             expect(hasPermission(devUser, "assessment:read")).toBe(true);
             expect(hasPermission(auditorUser, "assessment:delete")).toBe(false);

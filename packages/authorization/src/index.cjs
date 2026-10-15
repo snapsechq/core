@@ -88,6 +88,9 @@ const Permissions = Object.freeze({
     API_KEY_READ: "api_key:read",
     API_KEY_CREATE: "api_key:create",
     API_KEY_DELETE: "api_key:delete",
+    ORGANIZATION_UPDATE: "org:update",
+    ORGANIZATION_MANAGE_MEMBERS: "org:manage_members",
+    MEMBER_DELETE: "member:delete",
 });
 
 const DefaultRolePermissions = Object.freeze({
@@ -99,8 +102,10 @@ const DefaultRolePermissions = Object.freeze({
         "asset:read", "asset:create", "asset:update", "asset:delete",
         "report:read", "report:create", "report:delete",
         "api_key:read", "api_key:create", "api_key:delete",
+        "org:manage_members", "org:update",
         "member:update_teams", "member:update_role", "member:update_access",
-        "member:lock", "member:unlock", "member:regenerate_password", "member:update_2fa"
+        "member:lock", "member:unlock", "member:regenerate_password", "member:update_2fa",
+        "member:delete"
     ],
     Manager: [
         "assessment:read", "assessment:create", "assessment:update", "assessment:export",
