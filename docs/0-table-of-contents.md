@@ -11,11 +11,12 @@ It explains why and how duplicate authentication, authorization, and message bro
 The documentation is organized into four dedicated topic directories:
 
 ### 1. [Setup and Usage](./setup-and-usage/0-table-of-contents.md)
-Contains environment setup, token management, installation instructions, and troubleshooting.
+Contains environment setup, token management, installation instructions, troubleshooting, and contribution guidelines.
 - [1. Background & Architecture](./setup-and-usage/1-background-and-architecture.md): The motivation behind `@snapsechq/core` and consolidating duplicate logic across 13–17 services.
 - [2. GitHub Packages & .npmrc Setup](./setup-and-usage/2-github-packages-and-npmrc.md): Generating GitHub PAT tokens, scope selection (`read:packages`), and user `.npmrc` configuration on Windows & Linux.
 - [3. Installation & Troubleshooting](./setup-and-usage/3-installation-and-troubleshooting.md): Microservice installation with `npm i @snapsechq/core`, resolving conflicts, and local development workflows.
 - [4. Versioning & Publishing Workflow](./setup-and-usage/4-versioning-and-publishing.md): Releasing new versions, git tag workflows (`npm version patch`, `--follow-tags`), and microservice synchronization.
+- [5. Contributing & Adding Packages](./setup-and-usage/5-contributions.md): How to add new feature modules to `@snapsechq/core`, single-source layout (`src/` & `test/`), writing unit tests, and downstream consumption.
 
 ### 2. [Authentication Module](./authentication/0-table-of-contents.md)
 Covers token verification, authentication strategies, and Express middleware integration.

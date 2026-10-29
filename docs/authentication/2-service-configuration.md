@@ -64,7 +64,7 @@ module.exports = {
 
 ## Migration from Legacy Code
 
-Prior to `@snapsechq/authentication`, microservices contained a `strategies/` directory with `jwt.strategy.js`, `apiKey.strategy.js`, and `internal.strategy.js` manually maintained in their own codebase.
+Prior to `@snapsechq/core`, microservices contained a `strategies/` directory with `jwt.strategy.js`, `apiKey.strategy.js`, and `internal.strategy.js` manually maintained in their own codebase.
 
 When migrating a microservice:
 1. Delete the local `src/middlewares/auth/strategies/` folder.

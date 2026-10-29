@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const jwt = require("../packages/authentication/node_modules/jsonwebtoken");
+const jwt = require("jsonwebtoken");
 const assert = require("assert");
 
 const privateKeyPath = path.resolve(__dirname, "../../../keys/private.pem");
@@ -32,7 +32,7 @@ try {
 const oldAuthModule = require("../../VM/src/middlewares/auth/index.js");
 
 // Load NEW SDK package
-const createAuth = require("../packages/authentication/src/index.cjs");
+const createAuth = require("../src/authentication/index.cjs");
 const newAuthSuite = createAuth({
   publicKeyPath,
   serviceKey: "test-service-key-xyz",

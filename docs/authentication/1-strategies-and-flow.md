@@ -2,7 +2,7 @@
 
 ## Overview
 
-`@snapsechq/authentication` provides a strategy-driven authentication pipeline. Rather than having disparate authentication logic scattered across microservices, incoming requests are evaluated through standardized strategy handlers.
+The authentication module in `@snapsechq/core` provides a strategy-driven authentication pipeline. Rather than having disparate authentication logic scattered across microservices, incoming requests are evaluated through standardized strategy handlers.
 
 ```
                       Incoming Request

@@ -2,7 +2,7 @@
 
 ## Built-in Resource Policies
 
-`@snapsechq/authorization` includes pre-built policy handlers for core Snapsec entities:
+The authorization module in `@snapsechq/core` includes pre-built policy handlers for core Snapsec entities:
 
 | Policy | Resource Key | Built-in Rules & Guardrails |
 | :--- | :--- | :--- |
@@ -60,7 +60,7 @@ class ReportPolicy {
 Register the policy instance with the global registry:
 
 ```javascript
-const { defaultPolicyRegistry, authorization } = require("@snapsechq/authorization");
+const { defaultPolicyRegistry, authorization } = require("@snapsechq/core");
 
 defaultPolicyRegistry.register("report", new ReportPolicy());
 
@@ -85,7 +85,7 @@ When an authorization check fails via `.require()`, the engine throws one of two
 Mount an Express error-handling middleware to format authorization errors automatically:
 
 ```javascript
-const { ForbiddenError, UnauthorizedError } = require("@snapsechq/authorization");
+const { ForbiddenError, UnauthorizedError } = require("@snapsechq/core");
 
 app.use((err, req, res, next) => {
   if (err instanceof UnauthorizedError) {

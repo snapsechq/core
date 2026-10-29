@@ -8,7 +8,7 @@ import authorization, {
     ForbiddenError,
     UnauthorizedError,
     PolicyRegistry,
-} from "../src/index.js";
+} from "../src/authorization/index.js";
 
 describe("@snapsec/authorization", () => {
     describe("Roles & Hierarchy", () => {
@@ -280,3 +280,4 @@ describe("@snapsec/authorization", () => {
         });
     });
 });
+

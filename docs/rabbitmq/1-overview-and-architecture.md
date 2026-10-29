@@ -10,17 +10,17 @@ Previously, each microservice copy-pasted an entire 291-line `RabbitMQ` class in
 2. **Channel Contention**: Without standardized channel pooling, services risked mixing publishing channels with blocking consumer listeners.
 3. **Inconsistent Module Support**: Some services used CommonJS (`require`), while others used ES Modules (`import`), leading to diverging implementations.
 
-`@snapsechq/rabbitmq` resolves this by providing a unified, battle-tested broker package inside the `backend/core` monorepo.
+The RabbitMQ module in `@snapsechq/core` resolves this by providing a unified, battle-tested broker package inside `backend/core`.
 
 ---
 
 ## Core Broker Architecture
 
-`@snapsechq/rabbitmq` is built on top of `amqplib` and implements an enterprise-grade architecture:
+The RabbitMQ module in `@snapsechq/core` is built on top of `amqplib` and implements an enterprise-grade architecture:
 
 ```
                           ┌──────────────────────────┐
-                          │    @snapsechq/rabbitmq   │
+                          │     @snapsechq/core      │
                           │      createMqBroker()    │
                           └─────────────┬────────────┘
                                         │

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, vi } from "vitest";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { createAuth } from "../src/index.js";
+import { createAuth } from "../src/authentication/index.js";
 
 describe("@snapsec/authentication", () => {
     let privateKey;
@@ -233,3 +233,4 @@ describe("@snapsec/authentication", () => {
         expect(req.user).toBeUndefined();
     });
 });
+

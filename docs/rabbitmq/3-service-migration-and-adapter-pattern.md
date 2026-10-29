@@ -73,18 +73,18 @@ In the microservice `package.json`:
 
 ```json
 "dependencies": {
-  "@snapsechq/rabbitmq": "^0.1.0"
+  "@snapsechq/core": "^0.2.3"
 }
 ```
 
 Install using `--legacy-peer-deps` to bypass Mongoose peer dependency conflicts:
 
 ```bash
-npm install @snapsechq/rabbitmq --legacy-peer-deps
+npm install @snapsechq/core --legacy-peer-deps
 ```
 
 ### 2. Dockerfile BuildKit Secret Mount
-Because `@snapsechq/rabbitmq` is hosted on GitHub Packages, ensure the microservice's `Dockerfile` mounts the `github_pat` secret during `npm ci`:
+Because `@snapsechq/core` is hosted on GitHub Packages, ensure the microservice's `Dockerfile` mounts the `github_pat` secret during `npm ci`:
 
 ```dockerfile
 # syntax=docker/dockerfile:1.7
@@ -133,3 +133,4 @@ VM server running on port 11001
 ---
 
 [⬅️ Previous: 2. Messaging Patterns & API](./2-messaging-patterns-and-api.md) | [Back to Start: Main Table of Contents ➡️](../0-table-of-contents.md)
+

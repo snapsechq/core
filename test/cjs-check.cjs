@@ -1,5 +1,5 @@
-const authorization = require("../packages/authorization/src/index.cjs");
-const createAuth = require("../packages/authentication/src/index.cjs");
+const authorization = require("../src/authorization/index.cjs");
+const createAuth = require("../src/authentication/index.cjs");
 
 console.log("CJS Authorization methods:", {
     can: typeof authorization.can,

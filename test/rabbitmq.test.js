@@ -7,7 +7,7 @@ vi.mock("amqplib", () => ({
     connect: vi.fn(),
 }));
 
-import { RabbitMQ, createMqBroker, buildRabbitmqUrl } from "../src/index.js";
+import { RabbitMQ, createMqBroker, buildRabbitmqUrl } from "../src/rabbitmq/index.js";
 
 describe("@snapsechq/rabbitmq", () => {
     describe("buildRabbitmqUrl", () => {
@@ -163,3 +163,4 @@ describe("@snapsechq/rabbitmq", () => {
         });
     });
 });
+

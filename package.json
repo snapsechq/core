@@ -23,7 +23,7 @@
             "require": "./src/rabbitmq/index.cjs"
         },
         "./integration": {
-            "import": "./packages/integration/src/index.js"
+            "import": "./src/integration/index.js"
         }
     },
     "files": [

@@ -4,7 +4,7 @@
 
 Snapsec separates identity authentication from authorization decisions. While authentication validates *who* is making the request, authorization determines *whether* that identity has permission to perform a specific action on a specific resource.
 
-To provide both performance and granular security, `@snapsechq/authorization` uses a three-layer evaluation pipeline:
+To provide both performance and granular security, the authorization engine in `@snapsechq/core` uses a three-layer evaluation pipeline:
 
 ```
                     Incoming Authorization Request

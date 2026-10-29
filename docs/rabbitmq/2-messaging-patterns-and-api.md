@@ -1,6 +1,6 @@
 # 2. Messaging Patterns & API
 
-`@snapsechq/rabbitmq` provides a clean, unified API covering the three primary AMQP messaging topologies: **Topic Exchanges**, **Direct Queues**, and **Fanout Broadcasts**.
+The RabbitMQ module in `@snapsechq/core` provides a clean, unified API covering the three primary AMQP messaging topologies: **Topic Exchanges**, **Direct Queues**, and **Fanout Broadcasts**.
 
 ---
 
@@ -90,7 +90,7 @@ await mqbroker.intercept("config.reload", async (data, msg, ch) => {
 Constructs a valid AMQP connection string from parameters or environment variables:
 
 ```javascript
-const { buildRabbitmqUrl } = require("@snapsechq/rabbitmq");
+const { buildRabbitmqUrl } = require("@snapsechq/core/rabbitmq");
 
 // From discrete config object
 const url = buildRabbitmqUrl({
@@ -114,7 +114,8 @@ The package supports both module standards natively without transpilation issues
 
 ### CommonJS (Node.js / Express Services)
 ```javascript
-const { createMqBroker, mqbroker } = require("@snapsechq/rabbitmq");
+const { createMqBroker, mqbroker } = require("@snapsechq/core");
+// Or subpath import: require("@snapsechq/core/rabbitmq");
 
 const customBroker = createMqBroker({
   url: "amqp://localhost:5672",
@@ -125,7 +126,8 @@ const customBroker = createMqBroker({
 
 ### ES Modules (Modern Services & Tools)
 ```javascript
-import { createMqBroker, mqbroker } from "@snapsechq/rabbitmq";
+import { createMqBroker, mqbroker } from "@snapsechq/core";
+// Or subpath import: from "@snapsechq/core/rabbitmq";
 
 const customBroker = createMqBroker({
   url: process.env.RABBITMQ_URL,
