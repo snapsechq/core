@@ -21,6 +21,9 @@
         "./rabbitmq": {
             "import": "./src/rabbitmq/index.js",
             "require": "./src/rabbitmq/index.cjs"
+        },
+        "./integration": {
+            "import": "./packages/integration/src/index.js"
         }
     },
     "files": [
@@ -40,7 +43,8 @@
     "dependencies": {
         "amqplib": "^0.10.4",
         "axios": "^1.7.9",
-        "jsonwebtoken": "^9.0.2"
+        "jsonwebtoken": "^9.0.2",
+        "mongodb": "^6.21.0"
     },
     "devDependencies": {
         "vitest": "^2.1.8"
