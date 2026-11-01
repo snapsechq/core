@@ -52,5 +52,5 @@ git push origin master --follow-tags
 ## Detailed Documentation
 - [5. Contributing & Adding Packages Guide](./docs/setup-and-usage/5-contributing.md)
 - [4. Versioning & Publishing Workflow](./docs/setup-and-usage/4-versioning-and-publishing.md)
-- [Troubleshooting & Known Issues](./docs/possible-issues.md)
+- [3. Installation & Troubleshooting Guide](./docs/setup-and-usage/3-installation-and-troubleshooting.md)
 
