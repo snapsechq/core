@@ -13,6 +13,7 @@ export class AwsProvider {
         const config = extractConfig(params);
         const accessKeyId = config.accessKeyId || config.access_key || config.accessKey;
         const secretAccessKey = config.secretAccessKey || config.secret_access_key || config.secretKey;
+        const region = config.region;
 
         if (!accessKeyId || typeof accessKeyId !== 'string' || !accessKeyId.trim()) {
             throw new Error("Access Key ID is required for AWS Adapter");
