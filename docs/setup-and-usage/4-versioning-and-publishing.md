@@ -112,4 +112,4 @@ snap pkg update --service VM
 
 ---
 
-[⬅️ Previous: 3. Installation & Troubleshooting](./3-installation-and-troubleshooting.md) | [Next: 5. Contributing & Adding Packages ➡️](./5-contributions.md)
+[⬅️ Previous: 3. Installation & Troubleshooting](./3-installation-and-troubleshooting.md) | [Next: 5. Contributing & Adding Packages ➡️](./5-contributing.md)

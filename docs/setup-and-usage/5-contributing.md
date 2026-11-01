@@ -65,7 +65,7 @@ backend/core/
     ├── authentication.test.js
     ├── authorization.test.js
     ├── rabbitmq.test.js
-    ├── root-exports.test.js
+    ├── exports.test.js
     └── <new-module>.test.js   <-- Your new module unit test suite
 ```
 
@@ -218,7 +218,7 @@ describe("@snapsechq/<new-module>", () => {
 
 ### Step 2: Update Root Export Tests
 
-If the module is re-exported from the package root, open [`test/root-exports.test.js`](../../test/root-exports.test.js) and add assertions verifying that root ESM and CommonJS exports correctly surface the new module:
+If the module is re-exported from the package root, open [`test/exports.test.js`](../../test/exports.test.js) and add assertions verifying that root ESM and CommonJS exports correctly surface the new module:
 
 ```javascript
 describe("ESM Root Exports", () => {

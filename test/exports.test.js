@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { createAuth, authorization, Roles, Permissions, createMqBroker } from "../src/index.js";
+import { createAuth, authorization, Roles, Permissions, createMqBroker, Integration, Provider } from "../src/index.js";
 import coreCjs from "../src/index.cjs";
 
-describe("SnapSec Core Unified Package Root Exports", () => {
+describe("Snapsec Core Unified Package Root Exports", () => {
     describe("ESM Root Exports", () => {
         it("exports createAuth factory", () => {
             expect(typeof createAuth).toBe("function");
@@ -19,6 +19,13 @@ describe("SnapSec Core Unified Package Root Exports", () => {
 
         it("exports createMqBroker factory", () => {
             expect(typeof createMqBroker).toBe("function");
+        });
+
+        it("exports Integration and Provider", () => {
+            expect(Integration).toBeDefined();
+            expect(typeof Integration).toBe("function");
+            expect(Provider).toBeDefined();
+            expect(typeof Provider).toBe("function");
         });
     });
 

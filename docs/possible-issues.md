@@ -105,5 +105,5 @@ If any matches are returned, update those files to import from `@snapsechq/core`
 ## Related Documentation
 * [1. Background & Architecture](./setup-and-usage/1-background-and-architecture.md)
 * [2. Messaging Patterns & API](./rabbitmq/2-messaging-patterns-and-api.md)
-* [5. Contributing & Adding Packages](./setup-and-usage/5-contributions.md)
+* [5. Contributing & Adding Packages](./setup-and-usage/5-contributing.md)
 

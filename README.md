@@ -32,7 +32,7 @@ backend/core/
     ├── authentication.test.js
     ├── authorization.test.js
     ├── rabbitmq.test.js
-    └── root-exports.test.js
+    └── exports.test.js
 ```
 
 ---
@@ -114,4 +114,4 @@ Full architectural documentation and integration runbooks are available in the [
 * [Authentication Architecture](./docs/authentication/0-table-of-contents.md)
 * [Authorization Architecture](./docs/authorization/0-table-of-contents.md)
 * [RabbitMQ Architecture](./docs/rabbitmq/0-table-of-contents.md)
-* [Contributing & Adding Modules](./docs/setup-and-usage/5-contributions.md)
+* [Contributing & Adding Modules](./docs/setup-and-usage/5-contributing.md)

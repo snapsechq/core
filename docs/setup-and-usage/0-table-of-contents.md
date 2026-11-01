@@ -20,7 +20,7 @@ This guide details how to configure your development environment, authenticate w
    - Step-by-step tag and publish commands (`npm version patch`, `--follow-tags`).
    - Automated CI/CD publishing to GitHub Packages.
    - Synchronizing downstream microservices with `snap pkg update`.
-5. [Contributing & Adding Packages](./5-contributions.md)
+5. [Contributing & Adding Packages](./5-contributing.md)
    - Single-package distribution philosophy (`npm i @snapsechq/core@latest`).
    - Single-source architecture (`src/` and `test/`).
    - Step-by-step guide to adding and exporting new modules.

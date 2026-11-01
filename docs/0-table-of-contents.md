@@ -16,7 +16,7 @@ Contains environment setup, token management, installation instructions, trouble
 - [2. GitHub Packages & .npmrc Setup](./setup-and-usage/2-github-packages-and-npmrc.md): Generating GitHub PAT tokens, scope selection (`read:packages`), and user `.npmrc` configuration on Windows & Linux.
 - [3. Installation & Troubleshooting](./setup-and-usage/3-installation-and-troubleshooting.md): Microservice installation with `npm i @snapsechq/core`, resolving conflicts, and local development workflows.
 - [4. Versioning & Publishing Workflow](./setup-and-usage/4-versioning-and-publishing.md): Releasing new versions, git tag workflows (`npm version patch`, `--follow-tags`), and microservice synchronization.
-- [5. Contributing & Adding Packages](./setup-and-usage/5-contributions.md): How to add new feature modules to `@snapsechq/core`, single-source layout (`src/` & `test/`), writing unit tests, and downstream consumption.
+- [5. Contributing & Adding Packages](./setup-and-usage/5-contributing.md): How to add new feature modules to `@snapsechq/core`, single-source layout (`src/` & `test/`), writing unit tests, and downstream consumption.
 
 ### 2. [Authentication Module](./authentication/0-table-of-contents.md)
 Covers token verification, authentication strategies, and Express middleware integration.
