@@ -272,4 +272,16 @@ export class Integration {
     static async verifyConfiguration(integrationId, config) {
         return await Provider.verifyConfiguration(integrationId, config);
     }
+
+    static async executeCapability(integrationId, methodSlug, config, params = {}) {
+        return await Provider.executeCapability(integrationId, methodSlug, config, params);
+    }
+
+    static getCapabilities(integrationId) {
+        return Provider.getCapabilities(integrationId);
+    }
+
+    static hasCapability(integrationId, methodSlug) {
+        return Provider.hasCapability(integrationId, methodSlug);
+    }
 }

@@ -5,6 +5,7 @@
 const authentication = require("./authentication/index.cjs");
 const authorization = require("./authorization/index.cjs");
 const rabbitmq = require("./rabbitmq/index.cjs");
+const cache = require("./cache/index.cjs");
 
 // Extract the primary factory/instance
 const createAuth = authentication.createAuth || authentication;
@@ -24,6 +25,16 @@ const properties = {
     mqbroker,
     RabbitMQ,
     buildRabbitmqUrl,
+
+    // Re-export Cache suite
+    cache: cache.cache,
+    createCache: cache.createCache,
+    Cache: cache.Cache,
+    RedisCache: cache.RedisCache,
+    MemoryCache: cache.MemoryCache,
+    BaseCache: cache.BaseCache,
+    redisService: cache.redisService,
+    buildRedisUrl: cache.buildRedisUrl,
 
     // Re-export full Authentication suite & helpers
     createJwtStrategy: authentication.createJwtStrategy,

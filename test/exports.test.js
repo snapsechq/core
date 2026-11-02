@@ -1,5 +1,22 @@
 import { describe, it, expect } from "vitest";
-import { createAuth, authorization, Roles, Permissions, createMqBroker, Integration, Provider } from "../src/index.js";
+import {
+    createAuth,
+    authorization,
+    Roles,
+    Permissions,
+    createMqBroker,
+    Integration,
+    Provider,
+    GithubProvider,
+    GitlabProvider,
+    createCache,
+    cache,
+    Cache,
+    RedisCache,
+    MemoryCache,
+    BaseCache,
+    redisService,
+} from "../src/index.js";
 import coreCjs from "../src/index.cjs";
 
 describe("Snapsec Core Unified Package Root Exports", () => {
@@ -21,11 +38,27 @@ describe("Snapsec Core Unified Package Root Exports", () => {
             expect(typeof createMqBroker).toBe("function");
         });
 
-        it("exports Integration and Provider", () => {
+        it("exports Integration, Provider, and code repository providers", () => {
             expect(Integration).toBeDefined();
             expect(typeof Integration).toBe("function");
             expect(Provider).toBeDefined();
             expect(typeof Provider).toBe("function");
+            expect(GithubProvider).toBeDefined();
+            expect(typeof GithubProvider).toBe("function");
+            expect(GitlabProvider).toBeDefined();
+            expect(typeof GitlabProvider).toBe("function");
+        });
+
+        it("exports Cache factory, classes, and singletons", () => {
+            expect(typeof createCache).toBe("function");
+            expect(Cache).toBeDefined();
+            expect(typeof Cache.create).toBe("function");
+            expect(typeof Cache.getInstance).toBe("function");
+            expect(RedisCache).toBeDefined();
+            expect(MemoryCache).toBeDefined();
+            expect(BaseCache).toBeDefined();
+            expect(cache).toBeDefined();
+            expect(redisService).toBeDefined();
         });
     });
 
@@ -45,6 +78,18 @@ describe("Snapsec Core Unified Package Root Exports", () => {
 
         it("exports createMqBroker factory", () => {
             expect(typeof coreCjs.createMqBroker).toBe("function");
+        });
+
+        it("exports Cache factory, classes, and singletons", () => {
+            expect(typeof coreCjs.createCache).toBe("function");
+            expect(coreCjs.Cache).toBeDefined();
+            expect(typeof coreCjs.Cache.create).toBe("function");
+            expect(typeof coreCjs.Cache.getInstance).toBe("function");
+            expect(coreCjs.RedisCache).toBeDefined();
+            expect(coreCjs.MemoryCache).toBeDefined();
+            expect(coreCjs.BaseCache).toBeDefined();
+            expect(coreCjs.cache).toBeDefined();
+            expect(coreCjs.redisService).toBeDefined();
         });
     });
 });

@@ -1,7 +1,7 @@
 {
     "name": "@snapsechq/core",
     "version": "0.3.2",
-    "description": "SnapSec Core Platform Utilities: Authentication, Authorization, and RabbitMQ",
+    "description": "SnapSec Core Platform Utilities: Authentication, Authorization, RabbitMQ, and Cache",
     "type": "module",
     "main": "./src/index.cjs",
     "module": "./src/index.js",
@@ -24,6 +24,10 @@
         },
         "./integration": {
             "import": "./src/integration/index.js"
+        },
+        "./cache": {
+            "import": "./src/cache/index.js",
+            "require": "./src/cache/index.cjs"
         }
     },
     "files": [
@@ -43,6 +47,7 @@
     "dependencies": {
         "amqplib": "^0.10.4",
         "axios": "^1.7.9",
+        "ioredis": "^6.0.0",
         "jsonwebtoken": "^9.0.2",
         "mongodb": "^6.21.0"
     },

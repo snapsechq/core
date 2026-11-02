@@ -2,16 +2,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import crypto from "crypto";
 import { ObjectId } from "mongodb";
 
+import axios from "axios";
 import {
     Integration,
     decrypt,
     decryptConfig,
     Provider,
     ProviderRegistry,
+    BaseProvider,
+    capability,
     GcpProvider,
     AwsProvider,
     AzureProvider,
-    OracleProvider
+    OracleProvider,
+    GithubProvider,
+    GitlabProvider
 } from "../src/integration/index.js";
 
 // Helper to encrypt text using the same algorithm and key as integration.js
@@ -49,6 +54,8 @@ describe("@snapsechq/core - Integration Module", () => {
             expect(ProviderRegistry.azure).toBe(AzureProvider);
             expect(ProviderRegistry.gcp).toBe(GcpProvider);
             expect(ProviderRegistry.oracle).toBe(OracleProvider);
+            expect(ProviderRegistry.github).toBe(GithubProvider);
+            expect(ProviderRegistry.gitlab).toBe(GitlabProvider);
         });
 
         it("exports all specific provider classes", () => {
@@ -56,6 +63,8 @@ describe("@snapsechq/core - Integration Module", () => {
             expect(AzureProvider).toBeDefined();
             expect(GcpProvider).toBeDefined();
             expect(OracleProvider).toBeDefined();
+            expect(GithubProvider).toBeDefined();
+            expect(GitlabProvider).toBeDefined();
         });
     });
 
@@ -159,6 +168,10 @@ describe("@snapsechq/core - Integration Module", () => {
             expect(Provider.isProviderAvailable("Azure")).toBe(true);
             expect(Provider.isProviderAvailable("oracle")).toBe(true);
             expect(Provider.isProviderAvailable("ORACLE")).toBe(true);
+            expect(Provider.isProviderAvailable("github")).toBe(true);
+            expect(Provider.isProviderAvailable("GITHUB")).toBe(true);
+            expect(Provider.isProviderAvailable("gitlab")).toBe(true);
+            expect(Provider.isProviderAvailable("GITLAB")).toBe(true);
         });
 
         it("isProviderAvailable returns false for unsupported or invalid inputs", () => {
@@ -174,6 +187,8 @@ describe("@snapsechq/core - Integration Module", () => {
             expect(Provider.getProvider({ integrationId: "azure" })).toBe(AzureProvider);
             expect(Provider.getProvider({ integrationId: "gcp" })).toBe(GcpProvider);
             expect(Provider.getProvider({ integrationId: "oracle" })).toBe(OracleProvider);
+            expect(Provider.getProvider({ integrationId: "github" })).toBe(GithubProvider);
+            expect(Provider.getProvider({ integrationId: "gitlab" })).toBe(GitlabProvider);
         });
 
         it("getProvider throws for unsupported integrationId", () => {
@@ -441,6 +456,499 @@ describe("@snapsechq/core - Integration Module", () => {
         });
     });
 
+    describe("GithubProvider", () => {
+        beforeEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it("throws when Personal Access Token (PAT) is missing or blank", async () => {
+            await expect(GithubProvider.verifyIntegrationConfig({}))
+                .rejects.toThrow("Personal Access Token (PAT) is required for GitHub Adapter");
+
+            await expect(GithubProvider.verifyIntegrationConfig({ pat: "   " }))
+                .rejects.toThrow("Personal Access Token (PAT) is required for GitHub Adapter");
+        });
+
+        it("throws when base_url is an invalid URL format", async () => {
+            await expect(GithubProvider.verifyIntegrationConfig({
+                pat: "ghp_validToken12345",
+                base_url: "not-a-valid-url",
+            })).rejects.toThrow("Base URL must be a valid HTTP or HTTPS URL");
+        });
+
+        it("succeeds with skipLiveCheck flag", async () => {
+            const result = await GithubProvider.verifyIntegrationConfig({
+                pat: "ghp_anyToken",
+                skipLiveCheck: true,
+            });
+            expect(result).toBe(true);
+        });
+
+        it("accepts nested config under { github: { pat } } or { config: { pat } }", async () => {
+            const res1 = await GithubProvider.verifyIntegrationConfig({
+                github: { pat: "ghp_nested" },
+                skipLiveCheck: true,
+            });
+            expect(res1).toBe(true);
+
+            const res2 = await GithubProvider.verifyIntegrationConfig({
+                config: { pat: "ghp_config_wrapper" },
+                skipLiveCheck: true,
+            });
+            expect(res2).toBe(true);
+        });
+
+        it("accepts accessToken, token, and access_token aliases", async () => {
+            const res1 = await GithubProvider.verifyIntegrationConfig({
+                accessToken: "ghp_token_1",
+                skipLiveCheck: true,
+            });
+            expect(res1).toBe(true);
+
+            const res2 = await GithubProvider.verifyIntegrationConfig({
+                token: "ghp_token_2",
+                skipLiveCheck: true,
+            });
+            expect(res2).toBe(true);
+
+            const res3 = await GithubProvider.verifyIntegrationConfig({
+                access_token: "ghp_token_3",
+                skipLiveCheck: true,
+            });
+            expect(res3).toBe(true);
+        });
+
+        it("performs live API verification against https://api.github.com/user", async () => {
+            const mockGet = vi.spyOn(axios, "get").mockResolvedValue({
+                status: 200,
+                data: { login: "octocat", id: 1 },
+            });
+
+            const result = await GithubProvider.verifyIntegrationConfig({
+                pat: "ghp_valid_mock_token",
+            });
+
+            expect(result).toBe(true);
+            expect(mockGet).toHaveBeenCalledWith(
+                "https://api.github.com/user",
+                expect.objectContaining({
+                    headers: expect.objectContaining({
+                        Authorization: "token ghp_valid_mock_token",
+                        Accept: "application/vnd.github.v3+json",
+                    }),
+                })
+            );
+        });
+
+        it("formats Enterprise Server URL with /api/v3/user", async () => {
+            const mockGet = vi.spyOn(axios, "get").mockResolvedValue({
+                status: 200,
+                data: { login: "enterprise_user" },
+            });
+
+            const result = await GithubProvider.verifyIntegrationConfig({
+                pat: "ghp_enterprise_token",
+                base_url: "https://ghe.company.internal",
+            });
+
+            expect(result).toBe(true);
+            expect(mockGet).toHaveBeenCalledWith(
+                "https://ghe.company.internal/api/v3/user",
+                expect.any(Object)
+            );
+        });
+
+        it("throws formatted error when GitHub API returns an error", async () => {
+            vi.spyOn(axios, "get").mockRejectedValue({
+                response: {
+                    status: 401,
+                    data: { message: "Bad credentials" },
+                },
+            });
+
+            await expect(GithubProvider.verifyIntegrationConfig({
+                pat: "ghp_bad_token",
+            })).rejects.toThrow("Invalid GitHub Configuration: Bad credentials");
+        });
+
+        it("lists registered capabilities on GithubProvider without user and orgs", () => {
+            const capabilities = GithubProvider.getCapabilities();
+            const slugs = capabilities.map(c => c.slug);
+            expect(slugs).toContain("repos");
+            expect(slugs).toContain("prs");
+            expect(slugs).toContain("branches");
+            expect(slugs).toContain("commits");
+            expect(slugs).not.toContain("user");
+            expect(slugs).not.toContain("orgs");
+
+            expect(GithubProvider.hasCapability("repos")).toBe(true);
+            expect(GithubProvider.hasCapability("pull-requests")).toBe(true);
+            expect(GithubProvider.hasCapability("user")).toBe(false);
+            expect(GithubProvider.hasCapability("orgs")).toBe(false);
+            expect(GithubProvider.hasCapability("unknown")).toBe(false);
+        });
+
+        it("executes getRepositories capability and returns normalized schema", async () => {
+            const mockRepos = [{
+                id: 101,
+                name: "repo-alpha",
+                full_name: "org/repo-alpha",
+                description: "Alpha repo",
+                private: false,
+                default_branch: "main",
+                stargazers_count: 5,
+            }];
+            const mockGet = vi.spyOn(axios, "get").mockResolvedValue({
+                status: 200,
+                data: mockRepos,
+            });
+
+            const data = await GithubProvider.executeCapability("repos", {
+                pat: "ghp_mock_token",
+            }, { page: 2, per_page: 15 });
+
+            expect(data).toHaveLength(1);
+            expect(data[0]).toEqual({
+                type: "respository",
+                value: "org/repo-alpha",
+                properties: expect.objectContaining({
+                    id: 101,
+                    name: "repo-alpha",
+                    fullName: "org/repo-alpha",
+                    description: "Alpha repo",
+                    defaultBranch: "main",
+                    starsCount: 5,
+                }),
+            });
+            expect(mockGet).toHaveBeenCalledWith(
+                "https://api.github.com/user/repos",
+                expect.objectContaining({
+                    headers: expect.objectContaining({ Authorization: "token ghp_mock_token" }),
+                    params: expect.objectContaining({ page: 2, per_page: 15 }),
+                })
+            );
+        });
+
+        it("executes getPullRequests capability and returns normalized schema", async () => {
+            const mockPRs = [{
+                id: 501,
+                title: "Feature X",
+                number: 12,
+                state: "open",
+                draft: false,
+            }];
+            const mockGet = vi.spyOn(axios, "get").mockResolvedValue({
+                status: 200,
+                data: mockPRs,
+            });
+
+            const data = await GithubProvider.executeCapability("prs", {
+                pat: "ghp_mock_token",
+            }, { repo: "snapsechq/core", state: "open" });
+
+            expect(data).toHaveLength(1);
+            expect(data[0]).toEqual({
+                type: "pull_request",
+                value: "snapsechq/core#12",
+                properties: expect.objectContaining({
+                    id: 501,
+                    number: 12,
+                    title: "Feature X",
+                    state: "open",
+                    repository: "snapsechq/core",
+                }),
+            });
+            expect(mockGet).toHaveBeenCalledWith(
+                "https://api.github.com/repos/snapsechq/core/pulls",
+                expect.objectContaining({
+                    params: expect.objectContaining({ state: "open" }),
+                })
+            );
+        });
+
+        it("executes getBranches capability and returns normalized schema", async () => {
+            const mockBranches = [
+                { name: "main", protected: true, commit: { sha: "abc1234", url: "https://api.github.com/commits/abc1234" } },
+                { name: "develop", protected: false, commit: { sha: "def5678", url: "https://api.github.com/commits/def5678" } }
+            ];
+            const mockGet = vi.spyOn(axios, "get").mockResolvedValue({
+                status: 200,
+                data: mockBranches,
+            });
+
+            const data = await GithubProvider.executeCapability("branches", {
+                pat: "ghp_mock_token",
+            }, { repo: "snapsechq/core" });
+
+            expect(data).toHaveLength(2);
+            expect(data[0]).toEqual({
+                type: "branch",
+                value: "snapsechq/core:main",
+                properties: expect.objectContaining({
+                    name: "main",
+                    repository: "snapsechq/core",
+                    isProtected: true,
+                    commit: { sha: "abc1234", url: "https://api.github.com/commits/abc1234" },
+                }),
+            });
+            expect(mockGet).toHaveBeenCalledWith(
+                "https://api.github.com/repos/snapsechq/core/branches",
+                expect.any(Object)
+            );
+        });
+
+        it("throws when branch capability is missing repository parameter", async () => {
+            await expect(GithubProvider.executeCapability("branches", { pat: "ghp_mock" }))
+                .rejects.toThrow("Repository is required to fetch branches");
+        });
+
+        it("throws descriptive error when unsupported capability requested", async () => {
+            await expect(GithubProvider.executeCapability("non-existent-method", { pat: "ghp_mock" }))
+                .rejects.toThrow("Capability 'non-existent-method' is not supported for GitHub");
+        });
+    });
+
+    describe("GitlabProvider", () => {
+        beforeEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it("throws when Personal Access Token (PAT) is missing or blank", async () => {
+            await expect(GitlabProvider.verifyIntegrationConfig({}))
+                .rejects.toThrow("Personal Access Token (PAT) is required for GitLab Adapter");
+
+            await expect(GitlabProvider.verifyIntegrationConfig({ pat: "   " }))
+                .rejects.toThrow("Personal Access Token (PAT) is required for GitLab Adapter");
+        });
+
+        it("throws when base_url is an invalid URL format", async () => {
+            await expect(GitlabProvider.verifyIntegrationConfig({
+                pat: "glpat-validToken",
+                base_url: "ftp://gitlab.internal",
+            })).rejects.toThrow("Base URL must be a valid HTTP or HTTPS URL");
+        });
+
+        it("succeeds with skipLiveCheck flag", async () => {
+            const result = await GitlabProvider.verifyIntegrationConfig({
+                pat: "glpat-anyToken",
+                skipLiveCheck: true,
+            });
+            expect(result).toBe(true);
+        });
+
+        it("accepts nested config under { gitlab: { pat } } or { config: { pat } }", async () => {
+            const res1 = await GitlabProvider.verifyIntegrationConfig({
+                gitlab: { pat: "glpat-nested" },
+                skipLiveCheck: true,
+            });
+            expect(res1).toBe(true);
+
+            const res2 = await GitlabProvider.verifyIntegrationConfig({
+                config: { pat: "glpat-config-wrapper" },
+                skipLiveCheck: true,
+            });
+            expect(res2).toBe(true);
+        });
+
+        it("accepts accessToken, token, and gitlabUrl aliases", async () => {
+            const res1 = await GitlabProvider.verifyIntegrationConfig({
+                accessToken: "glpat-token-alias",
+                gitlabUrl: "https://gitlab.example.org",
+                skipLiveCheck: true,
+            });
+            expect(res1).toBe(true);
+
+            const res2 = await GitlabProvider.verifyIntegrationConfig({
+                token: "glpat-token-direct",
+                skipLiveCheck: true,
+            });
+            expect(res2).toBe(true);
+        });
+
+        it("performs live API verification against https://gitlab.com/api/v4/user", async () => {
+            const mockGet = vi.spyOn(axios, "get").mockResolvedValue({
+                status: 200,
+                data: { username: "gitlab_user", id: 42 },
+            });
+
+            const result = await GitlabProvider.verifyIntegrationConfig({
+                pat: "glpat-mock-token",
+            });
+
+            expect(result).toBe(true);
+            expect(mockGet).toHaveBeenCalledWith(
+                "https://gitlab.com/api/v4/user",
+                expect.objectContaining({
+                    headers: expect.objectContaining({
+                        "PRIVATE-TOKEN": "glpat-mock-token",
+                        Accept: "application/json",
+                    }),
+                })
+            );
+        });
+
+        it("cleans trailing slashes and /api/v4 suffix for self-hosted instances", async () => {
+            const mockGet = vi.spyOn(axios, "get").mockResolvedValue({
+                status: 200,
+                data: { username: "self_hosted_user" },
+            });
+
+            const result = await GitlabProvider.verifyIntegrationConfig({
+                pat: "glpat-self-hosted",
+                base_url: "https://gitlab.mycorp.com/api/v4/",
+            });
+
+            expect(result).toBe(true);
+            expect(mockGet).toHaveBeenCalledWith(
+                "https://gitlab.mycorp.com/api/v4/user",
+                expect.any(Object)
+            );
+        });
+
+        it("throws formatted error when GitLab API returns an error", async () => {
+            vi.spyOn(axios, "get").mockRejectedValue({
+                response: {
+                    status: 401,
+                    data: { message: "401 Unauthorized" },
+                },
+            });
+
+            await expect(GitlabProvider.verifyIntegrationConfig({
+                pat: "glpat-invalid",
+            })).rejects.toThrow("Invalid GitLab Configuration: 401 Unauthorized");
+        });
+
+        it("lists registered capabilities on GitlabProvider without user and groups", () => {
+            const capabilities = GitlabProvider.getCapabilities();
+            const slugs = capabilities.map(c => c.slug);
+            expect(slugs).toContain("repos");
+            expect(slugs).toContain("prs");
+            expect(slugs).toContain("branches");
+            expect(slugs).toContain("commits");
+            expect(slugs).not.toContain("user");
+            expect(slugs).not.toContain("groups");
+
+            expect(GitlabProvider.hasCapability("repos")).toBe(true);
+            expect(GitlabProvider.hasCapability("merge-requests")).toBe(true);
+            expect(GitlabProvider.hasCapability("mrs")).toBe(true);
+            expect(GitlabProvider.hasCapability("user")).toBe(false);
+            expect(GitlabProvider.hasCapability("groups")).toBe(false);
+            expect(GitlabProvider.hasCapability("unknown")).toBe(false);
+        });
+
+        it("executes getProjects capability via executeCapability and returns normalized schema", async () => {
+            const mockProjects = [{
+                id: 99,
+                name: "gitlab-repo",
+                path_with_namespace: "org/gitlab-repo",
+                web_url: "https://gitlab.com/org/gitlab-repo",
+                visibility: "public",
+                default_branch: "main",
+            }];
+            const mockGet = vi.spyOn(axios, "get").mockResolvedValue({
+                status: 200,
+                data: mockProjects,
+            });
+
+            const data = await GitlabProvider.executeCapability("repos", {
+                pat: "glpat-mock-token",
+            }, { page: 1, per_page: 25 });
+
+            expect(data).toHaveLength(1);
+            expect(data[0]).toEqual({
+                type: "respository",
+                value: "org/gitlab-repo",
+                properties: expect.objectContaining({
+                    id: 99,
+                    name: "gitlab-repo",
+                    fullName: "org/gitlab-repo",
+                    htmlUrl: "https://gitlab.com/org/gitlab-repo",
+                    defaultBranch: "main",
+                }),
+            });
+            expect(mockGet).toHaveBeenCalledWith(
+                "https://gitlab.com/api/v4/projects",
+                expect.objectContaining({
+                    headers: expect.objectContaining({ "PRIVATE-TOKEN": "glpat-mock-token" }),
+                    params: expect.objectContaining({ page: 1, per_page: 25 }),
+                })
+            );
+        });
+
+        it("executes getMergeRequests capability for a project and returns normalized schema", async () => {
+            const mockMRs = [{
+                id: 301,
+                iid: 15,
+                title: "Resolve issue 1",
+                state: "opened",
+                web_url: "https://gitlab.com/group/project/-/merge_requests/15",
+            }];
+            const mockGet = vi.spyOn(axios, "get").mockResolvedValue({
+                status: 200,
+                data: mockMRs,
+            });
+
+            const data = await GitlabProvider.executeCapability("prs", {
+                pat: "glpat-mock-token",
+            }, { projectId: "group/project", state: "opened" });
+
+            expect(data).toHaveLength(1);
+            expect(data[0]).toEqual({
+                type: "pull_request",
+                value: "group/project#15",
+                properties: expect.objectContaining({
+                    id: 301,
+                    number: 15,
+                    title: "Resolve issue 1",
+                    state: "open",
+                    repository: "group/project",
+                }),
+            });
+            expect(mockGet).toHaveBeenCalledWith(
+                "https://gitlab.com/api/v4/projects/group%2Fproject/merge_requests",
+                expect.objectContaining({
+                    params: expect.objectContaining({ state: "opened" }),
+                })
+            );
+        });
+
+        it("executes getBranches capability for project and returns normalized schema", async () => {
+            const mockBranches = [
+                { name: "main", protected: true, commit: { id: "git123", web_url: "https://gitlab.com/commit/git123" } },
+                { name: "patch-1", protected: false, commit: { id: "git456", web_url: "https://gitlab.com/commit/git456" } }
+            ];
+            const mockGet = vi.spyOn(axios, "get").mockResolvedValue({
+                status: 200,
+                data: mockBranches,
+            });
+
+            const data = await GitlabProvider.executeCapability("branches", {
+                pat: "glpat-mock-token",
+            }, { projectId: "group/my-project" });
+
+            expect(data).toHaveLength(2);
+            expect(data[0]).toEqual({
+                type: "branch",
+                value: "group/my-project:main",
+                properties: expect.objectContaining({
+                    name: "main",
+                    repository: "group/my-project",
+                    isProtected: true,
+                    commit: { sha: "git123", url: "https://gitlab.com/commit/git123" },
+                }),
+            });
+            expect(mockGet).toHaveBeenCalledWith(
+                "https://gitlab.com/api/v4/projects/group%2Fmy-project/repository/branches",
+                expect.any(Object)
+            );
+        });
+
+        it("throws when branch capability is missing project parameter", async () => {
+            await expect(GitlabProvider.executeCapability("branches", { pat: "glpat-mock" }))
+                .rejects.toThrow("Project ID or path is required to fetch branches");
+        });
+    });
+
     describe("Integration Class", () => {
         it("constructs default MongoDB URI when no parameters provided", () => {
             const integration = new Integration();
@@ -619,6 +1127,28 @@ describe("@snapsechq/core - Integration Module", () => {
                 region: "ap-south-1",
             });
             expect(result).toBe(true);
+        });
+
+        it("Provider and Integration executeCapability proxy to corresponding provider", async () => {
+            const mockRepos = [{ id: 1, name: "core" }];
+            vi.spyOn(axios, "get").mockResolvedValue({ status: 200, data: mockRepos });
+
+            const res1 = await Provider.executeCapability("github", "repos", { pat: "test-token" });
+            expect(res1[0]).toEqual(expect.objectContaining({
+                type: "respository",
+                value: "core",
+                properties: expect.objectContaining({ id: 1, name: "core" })
+            }));
+
+            const res2 = await Integration.executeCapability("github", "repos", { pat: "test-token" });
+            expect(res2[0]).toEqual(expect.objectContaining({
+                type: "respository",
+                value: "core",
+                properties: expect.objectContaining({ id: 1, name: "core" })
+            }));
+
+            const capabilities = Integration.getCapabilities("github");
+            expect(capabilities.some(c => c.slug === "repos")).toBe(true);
         });
     });
 });
