@@ -48,7 +48,7 @@ export class Provider {
      * @returns {Array<{ slug: string, method: string, aliases: string[], description: string }>}
      */
     static getCapabilities(integrationId) {
-        const provider = this.getProvider({ integrationId });
+        const provider = this.getProvider(integrationId);
         if (typeof provider.getCapabilities === "function") {
             return provider.getCapabilities();
         }
@@ -63,7 +63,7 @@ export class Provider {
      * @returns {boolean}
      */
     static hasCapability(integrationId, methodSlug) {
-        const provider = this.getProvider({ integrationId });
+        const provider = this.getProvider(integrationId);
         if (typeof provider.hasCapability === "function") {
             return provider.hasCapability(methodSlug);
         }
@@ -80,9 +80,9 @@ export class Provider {
      * @returns {Promise<any>}
      */
     static async executeCapability(integrationId, methodSlug, config, params = {}) {
-        const provider = this.getProvider({ integrationId });
+        const provider = this.getProvider(integrationId);
         if (typeof provider.executeCapability !== "function") {
-            throw new Error(`Provider for integration  does not support executing capabilities.`);
+            throw new Error(`Provider for integration ${integrationId} does not support executing capabilities.`);
         }
         return await provider.executeCapability(methodSlug, config, params);
     }

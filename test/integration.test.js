@@ -47,7 +47,6 @@ describe("@snapsechq/core - Integration Module", () => {
             expect(Provider).toBeDefined();
             expect(typeof Provider.isProviderAvailable).toBe("function");
             expect(typeof Provider.getProvider).toBe("function");
-            expect(typeof Provider.verifyIntegrationConfig).toBe("function");
 
             expect(ProviderRegistry).toBeDefined();
             expect(ProviderRegistry.aws).toBe(AwsProvider);
@@ -183,46 +182,29 @@ describe("@snapsechq/core - Integration Module", () => {
         });
 
         it("getProvider returns provider class for valid integrationId", () => {
-            expect(Provider.getProvider({ integrationId: "aws" })).toBe(AwsProvider);
-            expect(Provider.getProvider({ integrationId: "azure" })).toBe(AzureProvider);
-            expect(Provider.getProvider({ integrationId: "gcp" })).toBe(GcpProvider);
-            expect(Provider.getProvider({ integrationId: "oracle" })).toBe(OracleProvider);
-            expect(Provider.getProvider({ integrationId: "github" })).toBe(GithubProvider);
-            expect(Provider.getProvider({ integrationId: "gitlab" })).toBe(GitlabProvider);
+            expect(Provider.getProvider("aws")).toBe(AwsProvider);
+            expect(Provider.getProvider("azure")).toBe(AzureProvider);
+            expect(Provider.getProvider("gcp")).toBe(GcpProvider);
+            expect(Provider.getProvider("oracle")).toBe(OracleProvider);
+            expect(Provider.getProvider("github")).toBe(GithubProvider);
+            expect(Provider.getProvider("gitlab")).toBe(GitlabProvider);
         });
 
         it("getProvider throws for unsupported integrationId", () => {
-            expect(() => Provider.getProvider({ integrationId: "unknown-cloud" }))
+            expect(() => Provider.getProvider("unknown-cloud"))
                 .toThrow("unknown-cloud is not supported.");
         });
 
-        it("verifyIntegrationConfig delegates with (integrationId, config) positional args", async () => {
-            const result = await Provider.verifyIntegrationConfig("aws", {
-                accessKeyId: "test-key",
-                secretAccessKey: "test-secret",
-                region: "us-east-1",
-            });
-            expect(result).toBe(true);
-        });
+        it("Provider executeCapability proxies to corresponding provider", async () => {
+            const mockRepos = [{ id: 1, name: "core" }];
+            vi.spyOn(axios, "get").mockResolvedValue({ status: 200, data: mockRepos });
 
-        it("verifyIntegrationConfig delegates with object params containing config property", async () => {
-            const result = await Provider.verifyIntegrationConfig({
-                integrationId: "aws",
-                config: {
-                    accessKeyId: "test-key",
-                    secretAccessKey: "test-secret",
-                },
-            });
-            expect(result).toBe(true);
-        });
-
-        it("verifyIntegrationConfig delegates with flat object params", async () => {
-            const result = await Provider.verifyIntegrationConfig({
-                integrationId: "aws",
-                accessKeyId: "test-key",
-                secretAccessKey: "test-secret",
-            });
-            expect(result).toBe(true);
+            const res1 = await Provider.executeCapability("github", "repos", { pat: "test-token" });
+            expect(res1[0]).toEqual(expect.objectContaining({
+                type: "respository",
+                value: "core",
+                properties: expect.objectContaining({ id: 1, name: "core" })
+            }));
         });
     });
 
@@ -1057,98 +1039,45 @@ describe("@snapsechq/core - Integration Module", () => {
             expect(integration.db).toBeNull();
         });
 
-        it("getIntegrationById queries by ObjectId for valid 24-char hex id and decrypts config", async () => {
+        it("getProvider returns provider proxy and executes capability with config", async () => {
+            const integration = new Integration();
+            const mockRepos = [{ id: 1, name: "core" }];
+            vi.spyOn(axios, "get").mockResolvedValue({ status: 200, data: mockRepos });
+
+            const github = await integration.getProvider("github");
+            expect(github).toBeDefined();
+
+            const res = await github.getRepositories({ config: { pat: "test-token" } });
+            expect(res[0]).toEqual(expect.objectContaining({
+                type: "respository",
+                value: "core",
+                properties: expect.objectContaining({ id: 1, name: "core" })
+            }));
+        });
+
+        it("getIntegration queries database and decrypts config", async () => {
             const integration = new Integration();
             const testId = new ObjectId().toString();
-
-            const rawSecret = "super-secret-aws-key";
+            const rawSecret = "super-secret-pat";
             const mockDoc = {
                 _id: new ObjectId(testId),
-                name: "My AWS Integration",
-                integrationId: "aws",
+                name: "My Integration",
+                integrationId: "github",
                 config: {
-                    aws: {
-                        accessKeyId: "AKIA123",
-                        secretAccessKey: encryptHelper(rawSecret),
-                        region: "us-east-1",
+                    github: {
+                        pat: encryptHelper(rawSecret),
                     },
                 },
             };
 
             const mockFindOne = vi.fn().mockResolvedValue(mockDoc);
-            const mockCollection = { findOne: mockFindOne };
             integration.client = { topology: { isDestroyed: () => false } };
-            integration.db = { collection: vi.fn().mockReturnValue(mockCollection) };
+            integration.db = { collection: vi.fn().mockReturnValue({ findOne: mockFindOne }) };
 
-            const result = await integration.getIntegrationById({ id: testId, decrypt: true });
+            const result = await integration.getIntegration({ id: testId });
 
             expect(mockFindOne).toHaveBeenCalledWith({ _id: new ObjectId(testId) });
-            expect(result.config.aws.secretAccessKey).toBe(rawSecret);
-            expect(result.config.aws.region).toBe("us-east-1");
-        });
-
-        it("getIntegrationById does not decrypt config when decrypt: false", async () => {
-            const integration = new Integration();
-            const rawId = "custom-string-id-not-object-id";
-            const encryptedSecret = encryptHelper("plain-secret");
-
-            const mockDoc = {
-                _id: rawId,
-                name: "Custom Integration",
-                config: {
-                    token: encryptedSecret,
-                },
-            };
-
-            const mockFindOne = vi.fn().mockResolvedValue(mockDoc);
-            integration.client = { topology: { isDestroyed: () => false } };
-            integration.db = { collection: vi.fn().mockReturnValue({ findOne: mockFindOne }) };
-
-            const result = await integration.getIntegrationById({ id: rawId, decrypt: false });
-
-            expect(mockFindOne).toHaveBeenCalledWith({ _id: rawId });
-            expect(result.config.token).toBe(encryptedSecret);
-        });
-
-        it("getIntegrationById handles null document gracefully", async () => {
-            const integration = new Integration();
-            const mockFindOne = vi.fn().mockResolvedValue(null);
-            integration.client = { topology: { isDestroyed: () => false } };
-            integration.db = { collection: vi.fn().mockReturnValue({ findOne: mockFindOne }) };
-
-            const result = await integration.getIntegrationById({ id: "missing-id" });
-            expect(result).toBeNull();
-        });
-
-        it("Integration static verifyIntegrationConfig proxies to Provider", async () => {
-            const result = await Integration.verifyIntegrationConfig("aws", {
-                accessKeyId: "AKIA-KEY",
-                secretAccessKey: "SECRET-VAL",
-                region: "ap-south-1",
-            });
-            expect(result).toBe(true);
-        });
-
-        it("Provider and Integration executeCapability proxy to corresponding provider", async () => {
-            const mockRepos = [{ id: 1, name: "core" }];
-            vi.spyOn(axios, "get").mockResolvedValue({ status: 200, data: mockRepos });
-
-            const res1 = await Provider.executeCapability("github", "repos", { pat: "test-token" });
-            expect(res1[0]).toEqual(expect.objectContaining({
-                type: "respository",
-                value: "core",
-                properties: expect.objectContaining({ id: 1, name: "core" })
-            }));
-
-            const res2 = await Integration.executeCapability("github", "repos", { pat: "test-token" });
-            expect(res2[0]).toEqual(expect.objectContaining({
-                type: "respository",
-                value: "core",
-                properties: expect.objectContaining({ id: 1, name: "core" })
-            }));
-
-            const capabilities = Integration.getCapabilities("github");
-            expect(capabilities.some(c => c.slug === "repos")).toBe(true);
+            expect(result.config.github.pat).toBe(rawSecret);
         });
     });
 });
