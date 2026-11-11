@@ -1,4 +1,5 @@
 import { BaseProvider, capability } from "./base.provider.js";
+import { ConfigResolver } from "../config-resolver.js";
 import { GcpProvider } from "./gcp-provider/gcp.provider.js";
 import { AwsProvider } from "./aws-provider/aws.provider.js";
 import { AzureProvider } from "./azure-provider/azure.provider.js";
@@ -26,26 +27,18 @@ export class Provider {
         return providers.includes(integrationId.toLowerCase());
     }
 
-    static getProvider({ integrationId }) {
+    static getProvider(integrationId, options = {})  {
+        const { integration } = options;
         if (!this.isProviderAvailable(integrationId)) {
             throw new Error(`${integrationId} is not supported.`);
         }
 
-        return ProviderRegistry[integrationId.toLowerCase()];
-    }
+        const provider = ProviderRegistry[integrationId.toLowerCase()];
 
-    static async verifyIntegrationConfig(integrationIdOrParams, maybeConfig) {
-        let integrationId;
-        let config;
-        if (typeof integrationIdOrParams === "object" && integrationIdOrParams !== null) {
-            integrationId = integrationIdOrParams.integrationId;
-            config = integrationIdOrParams.config || integrationIdOrParams;
-        } else {
-            integrationId = integrationIdOrParams;
-            config = maybeConfig;
-        }
-        const provider = this.getProvider({ integrationId });
-        return await provider.verifyIntegrationConfig(config);
+        if (integration)
+            return ConfigResolver.create(provider, { integration }); // resolves the config from the provided instanceId if not, then passes through the config
+        else
+            return provider;
     }
 
     /**

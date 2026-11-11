@@ -246,8 +246,7 @@ export class Integration {
         return this.getDb().collection(collectionName);
     }
 
-    // provided an integration _id, return the integration instance
-    async getIntegrationById({ id, decrypt: shouldDecrypt = true }) {
+    async getIntegration({ id, decrypt: shouldDecrypt = true }) {
         try {
             const collection = this.getCollection("integrations");
             const query = typeof id === "string" && ObjectId.isValid(id)
@@ -265,23 +264,9 @@ export class Integration {
         }
     }
 
-    static async verifyIntegrationConfig(integrationId, config) {
-        return await Provider.verifyIntegrationConfig(integrationId, config);
-    }
+    async getProvider(integrationId) {
+        const provider = await Provider.getProvider(integrationId, { integration: this });
 
-    static async verifyConfiguration(integrationId, config) {
-        return await Provider.verifyConfiguration(integrationId, config);
-    }
-
-    static async executeCapability(integrationId, methodSlug, config, params = {}) {
-        return await Provider.executeCapability(integrationId, methodSlug, config, params);
-    }
-
-    static getCapabilities(integrationId) {
-        return Provider.getCapabilities(integrationId);
-    }
-
-    static hasCapability(integrationId, methodSlug) {
-        return Provider.hasCapability(integrationId, methodSlug);
+        return provider;
     }
 }
