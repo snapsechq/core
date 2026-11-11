@@ -1,6 +1,6 @@
 {
     "name": "@snapsechq/core",
-    "version": "0.3.4",
+    "version": "0.4.0",
     "description": "SnapSec Core Platform Utilities: Authentication, Authorization, RabbitMQ, and Cache",
     "type": "module",
     "main": "./src/index.cjs",
