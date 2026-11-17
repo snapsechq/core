@@ -115,6 +115,10 @@ export class Integration {
         this.connection = null; // Alias to client for backward compatibility
         this.connectingPromise = null;
         this.encryptionKey = ENCRYPTION_KEY || process.env.ENCRYPTION_KEY || DEFAULT_ENCRYPTION_KEY;
+
+        if (!Integration._defaultInstance) {
+            Integration._defaultInstance = this;
+        }
     }
 
     _setupClientListeners(client) {
@@ -268,5 +272,138 @@ export class Integration {
         const provider = await Provider.getProvider(integrationId, { integration: this });
 
         return provider;
+    }
+
+    /**
+     * Internal helper to check environment variables for AI keys
+     */
+    static _hasEnvAiKeys() {
+        const envKeys = [
+            process.env.OPENAI_API_KEY,
+            process.env.ANTHROPIC_API_KEY,
+            process.env.GEMINI_API_KEY,
+            process.env.DEEPSEEK_API_KEY,
+            process.env.SNAPIQ_API_KEY
+        ].filter(Boolean);
+        return envKeys.length > 0;
+    }
+
+    /**
+     * Check if AI capabilities are configured and healthy for an organization.
+     * Checks automations database (adapterconfigs) and integrations database (integrations),
+     * with optional environment fallback.
+     *
+     * @param {Object} params
+     * @param {string} params.orgId - Organization ID
+     * @param {boolean} [params.checkHealth=false] - Whether to perform a live health check ping
+     * @param {string} [params.automationsDb] - Database name for automations (defaults to process.env.AUTOMATIONS_DB or "automations")
+     * @returns {Promise<boolean>}
+     */
+    async isAiConnected({ orgId, checkHealth = false, automationsDb = process.env.AUTOMATIONS_DB || "automations" } = {}) {
+        if (!orgId) {
+            return false;
+        }
+
+        const AI_TYPES = ["openai", "claude", "anthropic", "gemini", "google", "deepseek", "snapiq", "openrouter"];
+
+        const orgQuery = typeof orgId === "string" && ObjectId.isValid(orgId)
+            ? { $or: [{ orgId: String(orgId) }, { orgId: new ObjectId(orgId) }] }
+            : { orgId: String(orgId) };
+
+        try {
+            if (!this.isConnected()) {
+                await this.connect();
+            }
+        } catch (connErr) {
+            console.warn(`[Integration] Could not connect to MongoDB in isAiConnected:`, connErr.message);
+            return Integration._hasEnvAiKeys();
+        }
+
+        try {
+            // 1. Check automations DB (adapterconfigs collection)
+            const autoDb = this.client.db(automationsDb);
+            const adapterConfigsCol = autoDb.collection("adapterconfigs");
+            const adapters = await adapterConfigsCol.find({
+                ...orgQuery,
+                $or: [
+                    { type: { $in: AI_TYPES } },
+                    { category: { $in: ["AI", "ai", "ai-provider"] } },
+                    { adapter_type: "ai-provider" }
+                ]
+            }).toArray();
+
+            for (const adapter of adapters) {
+                const status = String(adapter.status || "active").toLowerCase().trim();
+                if (["inactive", "disabled", "error", "failed"].includes(status)) {
+                    continue;
+                }
+
+                let configObj = adapter.config || {};
+                if (typeof configObj === "string") {
+                    try {
+                        configObj = JSON.parse(configObj);
+                    } catch {
+                        // ignore JSON parse error
+                    }
+                }
+
+                const atype = String(adapter.type || "").toLowerCase().trim();
+                const apiKey = adapter.apiKey || adapter.masterKey || adapter.token ||
+                    configObj.apiKey || configObj.masterKey || configObj.token;
+
+                if (atype === "snapiq") {
+                    const masterKey = adapter.masterKey || adapter.apiKey || configObj.masterKey || configObj.apiKey;
+                    const endpoint = adapter.endpoint || adapter.baseUrl || configObj.endpoint || configObj.baseUrl;
+                    if (masterKey && String(masterKey).trim() && endpoint && String(endpoint).trim()) {
+                        return true;
+                    }
+                } else if (apiKey && String(apiKey).trim().length > 0) {
+                    return true;
+                }
+            }
+        } catch (err) {
+            console.warn(`[Integration] Error querying automations.adapterconfigs:`, err.message);
+        }
+
+        try {
+            // 2. Check integrations DB (integrations collection)
+            const integrationsCol = this.getCollection("integrations");
+            const integrations = await integrationsCol.find({
+                ...orgQuery,
+                $or: [
+                    { integrationId: { $in: [...AI_TYPES, "ai"] } },
+                    { category: { $in: ["AI", "ai"] } }
+                ]
+            }).toArray();
+
+            for (const item of integrations) {
+                const status = String(item.status || "").toLowerCase().trim();
+                if (["failed", "refresh_error", "disabled", "inactive"].includes(status)) {
+                    continue;
+                }
+                if (item.config && typeof item.config === "object" && Object.keys(item.config).length > 0) {
+                    return true;
+                }
+            }
+        } catch (err) {
+            console.warn(`[Integration] Error querying integrations.integrations:`, err.message);
+        }
+
+        // 3. Fallback to process.env keys (useful for standalone / test environments)
+        if (Integration._hasEnvAiKeys()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Static helper for isAiConnected.
+     * Can be invoked directly as `Integration.isAiConnected({ orgId })`.
+     * Uses the default/active Integration instance or creates a transient one.
+     */
+    static async isAiConnected({ orgId, checkHealth = false, client = null, automationsDb } = {}) {
+        const inst = client || Integration._defaultInstance || new Integration();
+        return await inst.isAiConnected({ orgId, checkHealth, automationsDb });
     }
 }

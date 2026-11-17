@@ -1079,6 +1079,121 @@ describe("@snapsechq/core - Integration Module", () => {
             expect(mockFindOne).toHaveBeenCalledWith({ _id: new ObjectId(testId) });
             expect(result.config.github.pat).toBe(rawSecret);
         });
+
+        describe("isAiConnected", () => {
+            const orgId = new ObjectId().toString();
+
+            it("returns false if orgId is missing or falsy", async () => {
+                const integration = new Integration();
+                const res = await integration.isAiConnected({ orgId: "" });
+                expect(res).toBe(false);
+            });
+
+            it("returns true when an active OpenAI adapter is found in adapterconfigs", async () => {
+                const integration = new Integration();
+                const mockFind = vi.fn().mockReturnValue({
+                    toArray: vi.fn().mockResolvedValue([
+                        { orgId, type: "openai", apiKey: "sk-mock-key-12345", status: "active" }
+                    ])
+                });
+                integration.client = {
+                    topology: { isDestroyed: () => false },
+                    db: vi.fn().mockReturnValue({
+                        collection: vi.fn().mockReturnValue({ find: mockFind })
+                    })
+                };
+
+                const res = await integration.isAiConnected({ orgId });
+                expect(res).toBe(true);
+            });
+
+            it("returns true when SnapIQ is configured with masterKey and endpoint", async () => {
+                const integration = new Integration();
+                const mockFind = vi.fn().mockReturnValue({
+                    toArray: vi.fn().mockResolvedValue([
+                        { orgId, type: "snapiq", masterKey: "snapiq-secret", endpoint: "https://snapiq.local", status: "active" }
+                    ])
+                });
+                integration.client = {
+                    topology: { isDestroyed: () => false },
+                    db: vi.fn().mockReturnValue({
+                        collection: vi.fn().mockReturnValue({ find: mockFind })
+                    })
+                };
+
+                const res = await integration.isAiConnected({ orgId });
+                expect(res).toBe(true);
+            });
+
+            it("returns false when adapter is disabled or has no apiKey", async () => {
+                const integration = new Integration();
+                const mockFindAuto = vi.fn().mockReturnValue({
+                    toArray: vi.fn().mockResolvedValue([
+                        { orgId, type: "openai", apiKey: "sk-mock", status: "disabled" },
+                        { orgId, type: "claude", apiKey: "", status: "active" }
+                    ])
+                });
+                const mockFindInt = vi.fn().mockReturnValue({
+                    toArray: vi.fn().mockResolvedValue([])
+                });
+
+                integration.client = {
+                    topology: { isDestroyed: () => false },
+                    db: vi.fn().mockReturnValue({
+                        collection: vi.fn().mockReturnValue({ find: mockFindAuto })
+                    })
+                };
+                integration.db = {
+                    collection: vi.fn().mockReturnValue({ find: mockFindInt })
+                };
+
+                const res = await integration.isAiConnected({ orgId });
+                expect(res).toBe(false);
+            });
+
+            it("returns true when an AI integration is found in integrations collection", async () => {
+                const integration = new Integration();
+                const mockFindAuto = vi.fn().mockReturnValue({
+                    toArray: vi.fn().mockResolvedValue([])
+                });
+                const mockFindInt = vi.fn().mockReturnValue({
+                    toArray: vi.fn().mockResolvedValue([
+                        { orgId, integrationId: "openai", status: "installed", config: { apiKey: "sk-test" } }
+                    ])
+                });
+
+                integration.client = {
+                    topology: { isDestroyed: () => false },
+                    db: vi.fn().mockReturnValue({
+                        collection: vi.fn().mockReturnValue({ find: mockFindAuto })
+                    })
+                };
+                integration.db = {
+                    collection: vi.fn().mockReturnValue({ find: mockFindInt })
+                };
+
+                const res = await integration.isAiConnected({ orgId });
+                expect(res).toBe(true);
+            });
+
+            it("works via static Integration.isAiConnected", async () => {
+                const integration = new Integration();
+                const mockFind = vi.fn().mockReturnValue({
+                    toArray: vi.fn().mockResolvedValue([
+                        { orgId, type: "claude", apiKey: "anthropic-key", status: "active" }
+                    ])
+                });
+                integration.client = {
+                    topology: { isDestroyed: () => false },
+                    db: vi.fn().mockReturnValue({
+                        collection: vi.fn().mockReturnValue({ find: mockFind })
+                    })
+                };
+
+                const res = await Integration.isAiConnected({ orgId, client: integration });
+                expect(res).toBe(true);
+            });
+        });
     });
 });
 
