@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { MongoClient, ObjectId } from "mongodb";
 import { Provider } from "./providers/provider.js";
+import { getSupportedIntegrations, getCategories, getIntegrationDefinition } from "./definitions/index.js";
 
 const DEFAULT_OPTIONS = {
     maxPoolSize: 10,
@@ -268,10 +269,96 @@ export class Integration {
         }
     }
 
+    async getIntegrationById(params) {
+        return await this.getIntegration(params);
+    }
+
     async getProvider(integrationId) {
         const provider = await Provider.getProvider(integrationId, { integration: this });
 
         return provider;
+    }
+
+    /**
+     * Fetch all active AI integrations for an organization.
+     *
+     * @param {Object} params
+     * @param {string} params.orgId
+     * @param {boolean} [params.decrypt=true]
+     * @returns {Promise<Array<Object>>}
+     */
+    async getAiIntegrations({ orgId, decrypt: shouldDecrypt = true } = {}) {
+        if (!orgId) return [];
+        if (!this.isConnected() && !this.db) {
+            await this.connect();
+        }
+
+        const AI_TYPES = ["openai", "claude", "anthropic", "gemini", "google", "deepseek", "snapiq", "openrouter"];
+        const orgQuery = typeof orgId === "string" && ObjectId.isValid(orgId)
+            ? { $or: [{ orgId: String(orgId) }, { orgId: new ObjectId(orgId) }] }
+            : { orgId: String(orgId) };
+
+        try {
+            const collection = this.getCollection("integrations");
+            const list = await collection.find({
+                ...orgQuery,
+                $or: [
+                    { category: { $in: ["AI", "ai", "ai-provider"] } },
+                    { integrationId: { $in: [...AI_TYPES, "ai"] } }
+                ],
+                status: { $nin: ["failed", "refresh_error", "disabled", "inactive"] }
+            }).sort({ createdAt: -1 }).toArray();
+
+            return list.map(item => {
+                if (shouldDecrypt && item.config) {
+                    item.config = decryptConfig(item.config, this.encryptionKey);
+                }
+                return item;
+            });
+        } catch (err) {
+            console.warn(`[Integration] Error querying getAiIntegrations:`, err.message);
+            return [];
+        }
+    }
+
+    /**
+     * Fetch decrypted credentials and configuration for an AI model provider.
+     *
+     * @param {Object} params
+     * @param {string} params.orgId
+     * @param {string} [params.provider] - Optional specific provider ("openai", "claude", "deepseek", etc.)
+     * @param {boolean} [params.decrypt=true]
+     * @returns {Promise<Object|null>}
+     */
+    async getAiModelConfig({ orgId, provider, decrypt: shouldDecrypt = true } = {}) {
+        if (!orgId) return null;
+        const integrations = await this.getAiIntegrations({ orgId, decrypt: shouldDecrypt });
+        if (!integrations || integrations.length === 0) return null;
+
+        let matched = null;
+        if (provider) {
+            const target = String(provider).toLowerCase().trim();
+            matched = integrations.find(i => (i.integrationId || "").toLowerCase() === target);
+        }
+        if (!matched) {
+            matched = integrations[0]; // fallback to first available active AI integration
+        }
+        if (!matched) return null;
+
+        const idKey = (matched.integrationId || "").toLowerCase();
+        const conf = matched.config?.[idKey] || matched.config || {};
+        return {
+            _id: matched._id,
+            integrationId: matched.integrationId,
+            type: matched.integrationId,
+            name: matched.name,
+            apiKey: conf.apiKey || conf.masterKey || conf.token,
+            masterKey: conf.masterKey || conf.apiKey,
+            endpoint: conf.endpoint || conf.baseUrl,
+            model: conf.model,
+            models: conf.models || [],
+            config: conf
+        };
     }
 
     /**
@@ -290,8 +377,8 @@ export class Integration {
 
     /**
      * Check if AI capabilities are configured and healthy for an organization.
-     * Checks automations database (adapterconfigs) and integrations database (integrations),
-     * with optional environment fallback.
+     * Checks integrations database (integrations) primarily, with fallback to automations.adapterconfigs
+     * and environment variables.
      *
      * @param {Object} params
      * @param {string} params.orgId - Organization ID
@@ -320,7 +407,31 @@ export class Integration {
         }
 
         try {
-            // 1. Check automations DB (adapterconfigs collection)
+            // 1. Primary check: integrations DB (integrations collection)
+            const integrationsCol = this.getCollection("integrations");
+            const integrations = await integrationsCol.find({
+                ...orgQuery,
+                $or: [
+                    { category: { $in: ["AI", "ai", "ai-provider"] } },
+                    { integrationId: { $in: [...AI_TYPES, "ai"] } }
+                ]
+            }).toArray();
+
+            for (const item of integrations) {
+                const status = String(item.status || "").toLowerCase().trim();
+                if (["failed", "refresh_error", "disabled", "inactive"].includes(status)) {
+                    continue;
+                }
+                if (item.config && typeof item.config === "object" && Object.keys(item.config).length > 0) {
+                    return true;
+                }
+            }
+        } catch (err) {
+            console.warn(`[Integration] Error querying integrations.integrations:`, err.message);
+        }
+
+        try {
+            // 2. Legacy fallback check: automations DB (adapterconfigs collection) during migration
             const autoDb = this.client.db(automationsDb);
             const adapterConfigsCol = autoDb.collection("adapterconfigs");
             const adapters = await adapterConfigsCol.find({
@@ -362,31 +473,7 @@ export class Integration {
                 }
             }
         } catch (err) {
-            console.warn(`[Integration] Error querying automations.adapterconfigs:`, err.message);
-        }
-
-        try {
-            // 2. Check integrations DB (integrations collection)
-            const integrationsCol = this.getCollection("integrations");
-            const integrations = await integrationsCol.find({
-                ...orgQuery,
-                $or: [
-                    { integrationId: { $in: [...AI_TYPES, "ai"] } },
-                    { category: { $in: ["AI", "ai"] } }
-                ]
-            }).toArray();
-
-            for (const item of integrations) {
-                const status = String(item.status || "").toLowerCase().trim();
-                if (["failed", "refresh_error", "disabled", "inactive"].includes(status)) {
-                    continue;
-                }
-                if (item.config && typeof item.config === "object" && Object.keys(item.config).length > 0) {
-                    return true;
-                }
-            }
-        } catch (err) {
-            console.warn(`[Integration] Error querying integrations.integrations:`, err.message);
+            // automations DB check failure is non-blocking
         }
 
         // 3. Fallback to process.env keys (useful for standalone / test environments)
@@ -406,4 +493,24 @@ export class Integration {
         const inst = client || Integration._defaultInstance || new Integration();
         return await inst.isAiConnected({ orgId, checkHealth, automationsDb });
     }
+
+    /**
+     * Static helper for getAiModelConfig.
+     */
+    static async getAiModelConfig({ orgId, provider, client = null, decrypt = true } = {}) {
+        const inst = client || Integration._defaultInstance || new Integration();
+        return await inst.getAiModelConfig({ orgId, provider, decrypt });
+    }
+
+    /**
+     * Static helper for getAiIntegrations.
+     */
+    static async getAiIntegrations({ orgId, client = null, decrypt = true } = {}) {
+        const inst = client || Integration._defaultInstance || new Integration();
+        return await inst.getAiIntegrations({ orgId, decrypt });
+    }
 }
+
+Integration.getSupportedIntegrations = getSupportedIntegrations;
+Integration.getCategories = getCategories;
+Integration.getIntegrationDefinition = getIntegrationDefinition;

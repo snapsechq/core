@@ -1,0 +1,479 @@
+{
+  "categories": [
+    { "value": "code-repo", "label": "Code Repository" },
+    { "value": "cloud-infra", "label": "Cloud Infrastructure" },
+    { "value": "AI", "label": "AI Providers" },
+    { "value": "api-testing", "label": "API Security & Testing" },
+    { "value": "sast", "label": "SAST" },
+    { "value": "dast", "label": "DAST" },
+    { "value": "container-security", "label": "Container Security" },
+    { "value": "secret-scanning", "label": "Secret Scanning" },
+    { "value": "cloud-security", "label": "Cloud Security" },
+    { "value": "kubernetes-security", "label": "Kubernetes Security" },
+    { "value": "issue-tracking", "label": "Issue Tracking" },
+    { "value": "vulnerability-management", "label": "Vulnerability Management" },
+    { "value": "data-import", "label": "Data Import" },
+    { "value": "asset-management", "label": "Asset Management" },
+    { "value": "network-scanning", "label": "Network Scanning" },
+    { "value": "docker-image-scanning", "label": "Docker Image Scanning" },
+    { "value": "dependency-scanning", "label": "Dependency Scanning" },
+    { "value": "iac-scanning", "label": "IAC Scanning" }
+  ],
+  "integrations": [
+    {
+      "type": "ingress",
+      "id": "gcp",
+      "title": "Google Cloud Platform",
+      "description": "Fetch cloud assets and security postures from Google Cloud Platform",
+      "category": ["cloud-infra"],
+      "products": ["AUTO-PT"],
+      "logo": "/new-adapter-logos/gcp.svg",
+      "docs_url": "https://docs.snapsec.co/integrations/cspm/gcp",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true
+    },
+    {
+      "type": "ingress",
+      "id": "aws",
+      "title": "Amazon Web Services",
+      "description": "Fetch cloud assets and security postures from Amazon Web Services",
+      "category": ["cloud-infra"],
+      "products": ["AUTO-PT"],
+      "logo": "/new-adapter-logos/aws.svg",
+      "docs_url": "https://docs.snapsec.co/integrations/cspm/aws",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true,
+      "config_fields": [
+        {
+          "name": "accessKeyId",
+          "label": "Access Key ID",
+          "type": "text",
+          "required": true,
+          "placeholder": "AKIA...",
+          "description": "AWS Access Key ID"
+        },
+        {
+          "name": "secretAccessKey",
+          "label": "Secret Access Key",
+          "type": "password",
+          "required": true,
+          "placeholder": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+          "description": "AWS Secret Access Key"
+        },
+        {
+          "name": "region",
+          "label": "Region",
+          "type": "text",
+          "required": false,
+          "placeholder": "us-east-1",
+          "description": "AWS target scanning region (defaults to us-east-1)"
+        }
+      ]
+    },
+    {
+      "type": "ingress",
+      "id": "azure",
+      "title": "Microsoft Azure",
+      "description": "Fetch cloud assets and security postures from Microsoft Azure",
+      "category": ["cloud-infra"],
+      "products": ["AUTO-PT"],
+      "logo": "/new-adapter-logos/azure.svg",
+      "docs_url": "https://docs.snapsec.co/integrations/cspm/azure",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true
+    },
+    {
+      "type": "ingress",
+      "id": "oracle",
+      "title": "Oracle Cloud Infrastructure",
+      "description": "Fetch cloud assets and security postures from Oracle Cloud Infrastructure",
+      "category": ["cloud-infra"],
+      "products": ["AUTO-PT"],
+      "logo": "/new-adapter-logos/oracle.svg",
+      "docs_url": "https://docs.snapsec.co/integrations/cspm/oracle",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true
+    },
+    {
+      "type": "ingress",
+      "id": "github",
+      "title": "GitHub",
+      "description": "Integrate GitHub to fetch your repository data",
+      "category": ["code-repo"],
+      "products": ["AUTO-PT"],
+      "logo": "/new-adapter-logos/github.svg",
+      "docs_url": "https://docs.snapsec.co/integrations/aim/github",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true
+    },
+    {
+      "type": "ingress",
+      "id": "gitlab",
+      "title": "GitLab",
+      "description": "Integrate GitLab to fetch your repository data",
+      "category": ["code-repo"],
+      "products": ["AUTO-PT"],
+      "logo": "/new-adapter-logos/gitlab.svg",
+      "docs_url": "https://docs.snapsec.co/integrations/aim/gitlab",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true
+    },
+    {
+      "type": "ai-provider",
+      "id": "claude",
+      "title": "Anthropic Claude",
+      "description": "Connect Claude models to SnapSec.",
+      "category": ["AI"],
+      "products": ["AUTOMATIONS", "AUTO-PT"],
+      "logo": "/new-adapter-logos/claude.svg",
+      "docs_url": "https://docs.anthropic.com/en/api/getting-started",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true,
+      "config_fields": [
+        {
+          "name": "apiKey",
+          "label": "API Key",
+          "type": "password",
+          "required": true,
+          "placeholder": "sk-ant-...",
+          "description": "Anthropic API Key"
+        },
+        {
+          "name": "model",
+          "label": "Default Model",
+          "type": "select",
+          "required": false,
+          "placeholder": "claude-sonnet-5-5",
+          "description": "Preferred default model"
+        }
+      ],
+      "models": [
+        { "label": "claude-sonnet-5-5", "value": "claude-sonnet-5-5" },
+        { "label": "claude-opus-5-5", "value": "claude-opus-5-5" },
+        { "label": "claude-haiku-5-5", "value": "claude-haiku-5-5" },
+        { "label": "claude-fable-5-2", "value": "claude-fable-5-2" }
+      ]
+    },
+    {
+      "type": "ai-provider",
+      "id": "openai",
+      "title": "OpenAI",
+      "description": "Connect OpenAI models to SnapSec.",
+      "category": ["AI"],
+      "products": ["AUTOMATIONS", "AUTO-PT"],
+      "logo": "/new-adapter-logos/openai.svg",
+      "docs_url": "https://platform.openai.com/docs/api-reference",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true,
+      "config_fields": [
+        {
+          "name": "apiKey",
+          "label": "API Key",
+          "type": "password",
+          "required": true,
+          "placeholder": "sk-...",
+          "description": "OpenAI API Key"
+        },
+        {
+          "name": "model",
+          "label": "Default Model",
+          "type": "select",
+          "required": false,
+          "placeholder": "gpt-6-astra",
+          "description": "Preferred default model"
+        }
+      ],
+      "models": [
+        { "label": "gpt-6-astra", "value": "gpt-6-astra" },
+        { "label": "gpt-6.1-sol", "value": "gpt-6.1-sol" },
+        { "label": "gpt-6.1-terra", "value": "gpt-6.1-terra" },
+        { "label": "gpt-6-luna", "value": "gpt-6-luna" }
+      ]
+    },
+    {
+      "type": "ai-provider",
+      "id": "gemini",
+      "title": "Google Gemini",
+      "description": "Connect Google Gemini models to SnapSec.",
+      "category": ["AI"],
+      "products": ["AUTOMATIONS", "AUTO-PT"],
+      "logo": "/new-adapter-logos/gemini.svg",
+      "docs_url": "https://ai.google.dev/docs",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true,
+      "config_fields": [
+        {
+          "name": "apiKey",
+          "label": "API Key",
+          "type": "password",
+          "required": true,
+          "placeholder": "AIza...",
+          "description": "Google Gemini API Key"
+        },
+        {
+          "name": "model",
+          "label": "Default Model",
+          "type": "select",
+          "required": false,
+          "placeholder": "gemini-3.8-flash",
+          "description": "Preferred default model"
+        }
+      ],
+      "models": [
+        { "label": "gemini-4-carbon", "value": "gemini-4-carbon" },
+        { "label": "gemini-4-hydrogen", "value": "gemini-4-hydrogen" },
+        { "label": "gemini-4-argon", "value": "gemini-4-argon" },
+        { "label": "gemini-3.8-flash", "value": "gemini-3.8-flash" }
+      ]
+    },
+    {
+      "type": "ai-provider",
+      "id": "deepseek",
+      "title": "DeepSeek",
+      "description": "Connect DeepSeek models to SnapSec.",
+      "category": ["AI"],
+      "products": ["AUTOMATIONS", "AUTO-PT"],
+      "logo": "/new-adapter-logos/deepseek.svg",
+      "docs_url": "https://api-docs.deepseek.com/",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true,
+      "config_fields": [
+        {
+          "name": "apiKey",
+          "label": "API Key",
+          "type": "password",
+          "required": true,
+          "placeholder": "sk-...",
+          "description": "DeepSeek API Key"
+        },
+        {
+          "name": "model",
+          "label": "Default Model",
+          "type": "select",
+          "required": false,
+          "placeholder": "deepseek-flash",
+          "description": "Preferred default model"
+        }
+      ],
+      "models": [
+        { "label": "deepseek-flash", "value": "deepseek-flash" },
+        { "label": "deepseek-v4-pro", "value": "deepseek-v4-pro" }
+      ]
+    },
+    {
+      "type": "ai-provider",
+      "id": "snapiq",
+      "title": "SnapIQ",
+      "description": "Connect open source models via SnapIQ LiteLLM inference gateway.",
+      "category": ["AI"],
+      "products": ["AUTOMATIONS", "AUTO-PT"],
+      "logo": "/new-adapter-logos/snapiq.svg",
+      "docs_url": "https://docs.litellm.ai/",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true,
+      "config_fields": [
+        {
+          "name": "endpoint",
+          "label": "Endpoint URL",
+          "type": "text",
+          "required": true,
+          "placeholder": "http://snapiq:4000",
+          "description": "SnapIQ LiteLLM Inference Endpoint URL"
+        },
+        {
+          "name": "masterKey",
+          "label": "Master Key / API Key",
+          "type": "password",
+          "required": true,
+          "placeholder": "sk-...",
+          "description": "LiteLLM Master Key or API Key"
+        },
+        {
+          "name": "model",
+          "label": "Default Model",
+          "type": "text",
+          "required": false,
+          "placeholder": "llama-3.3-70b-instruct",
+          "description": "Default model name"
+        }
+      ],
+      "models": [
+        { "label": "llama-3.3-70b-instruct", "value": "llama-3.3-70b-instruct" },
+        { "label": "llama-4-maverick", "value": "llama-4-maverick" },
+        { "label": "qwen-2.5-72b-instruct", "value": "qwen-2.5-72b-instruct" },
+        { "label": "mistral-large-2411", "value": "mistral-large-2411" }
+      ]
+    },
+    {
+      "type": "ai-provider",
+      "id": "openrouter",
+      "title": "OpenRouter",
+      "description": "Connect OpenRouter models to SnapSec.",
+      "category": ["AI"],
+      "products": ["AUTOMATIONS", "AUTO-PT"],
+      "logo": "/new-adapter-logos/openrouter.svg",
+      "docs_url": "https://openrouter.ai/docs",
+      "installable": true,
+      "manual_integration_required": false,
+      "is_installed": false,
+      "supported": true,
+      "config_fields": [
+        {
+          "name": "apiKey",
+          "label": "API Key",
+          "type": "password",
+          "required": true,
+          "placeholder": "sk-or-...",
+          "description": "OpenRouter API Key"
+        },
+        {
+          "name": "model",
+          "label": "Default Model",
+          "type": "select",
+          "required": false,
+          "placeholder": "anthropic/claude-sonnet-5.5",
+          "description": "Preferred default model"
+        }
+      ],
+      "models": [
+        { "label": "anthropic/claude-sonnet-5.5", "value": "anthropic/claude-sonnet-5.5" },
+        { "label": "anthropic/claude-opus-5.5", "value": "anthropic/claude-opus-5.5" },
+        { "label": "anthropic/claude-haiku-5.5", "value": "anthropic/claude-haiku-5.5" },
+        { "label": "anthropic/claude-fable-5.2", "value": "anthropic/claude-fable-5.2" },
+        { "label": "openai/gpt-6-astra", "value": "openai/gpt-6-astra" },
+        { "label": "openai/gpt-6.1-sol", "value": "openai/gpt-6.1-sol" },
+        { "label": "openai/gpt-6.1-terra", "value": "openai/gpt-6.1-terra" },
+        { "label": "openai/gpt-6-luna", "value": "openai/gpt-6-luna" },
+        { "label": "google/gemini-4-carbon", "value": "google/gemini-4-carbon" },
+        { "label": "google/gemini-4-hydrogen", "value": "google/gemini-4-hydrogen" },
+        { "label": "google/gemini-4-argon", "value": "google/gemini-4-argon" },
+        { "label": "google/gemini-3.8-flash", "value": "google/gemini-3.8-flash" },
+        { "label": "deepseek/deepseek-v4.1-flash", "value": "deepseek/deepseek-v4.1-flash" },
+        { "label": "deepseek/deepseek-v4-pro", "value": "deepseek/deepseek-v4-pro" },
+        { "label": "meta-llama/llama-4-maverick", "value": "meta-llama/llama-4-maverick" },
+        { "label": "meta-llama/llama-3.3-70b-instruct", "value": "meta-llama/llama-3.3-70b-instruct" },
+        { "label": "mistralai/mistral-large-4-0", "value": "mistralai/mistral-large-4-0" },
+        { "label": "qwen/qwen3.8-max-prime", "value": "qwen/qwen3.8-max-prime" },
+        { "label": "qwen/qwen3.8-flash", "value": "qwen/qwen3.8-flash" }
+      ]
+    },
+    {
+      "type": "api-testing",
+      "id": "postman",
+      "title": "Postman",
+      "description": "Import Postman collections to automatically discover API endpoints, variables, and authentication flows for security testing.",
+      "category": ["api-testing", "data-import"],
+      "products": ["AUTO-PT"],
+      "supported": true,
+      "installable": true,
+      "docs_url": "https://docs.snapsec.co/integrations/postman",
+      "logo": "https://cdn.simpleicons.org/postman"
+    },
+    {
+      "type": "api-testing",
+      "id": "swagger",
+      "title": "Swagger / OpenAPI",
+      "description": "Ingest OpenAPI (Swagger) specifications to map API surface area, validate schemas, and perform automated vulnerability analysis.",
+      "category": ["api-testing", "data-import"],
+      "products": ["AUTO-PT"],
+      "supported": true,
+      "installable": true,
+      "docs_url": "https://docs.snapsec.co/integrations/swagger",
+      "logo": "https://cdn.simpleicons.org/swagger"
+    },
+    {
+      "type": "api-testing",
+      "id": "insomnia",
+      "title": "Insomnia",
+      "description": "Import Insomnia workspaces and request definitions to discover APIs and replay requests for security assessments.",
+      "category": ["api-testing", "data-import"],
+      "products": ["AUTO-PT"],
+      "supported": false,
+      "installable": true,
+      "docs_url": "https://docs.snapsec.co/integrations/insomnia",
+      "logo": "https://cdn.simpleicons.org/insomnia"
+    },
+    {
+      "type": "api-testing",
+      "id": "curl",
+      "title": "cURL",
+      "description": "Parse and replay cURL commands to identify live API endpoints and test request variations for vulnerabilities.",
+      "category": ["api-testing", "data-import"],
+      "products": ["AUTO-PT"],
+      "supported": false,
+      "installable": false,
+      "docs_url": "https://docs.snapsec.co/integrations/curl",
+      "logo": "https://cdn.simpleicons.org/curl"
+    },
+    {
+      "type": "api-testing",
+      "id": "bitbucket",
+      "title": "Bitbucket",
+      "description": "Scan Bitbucket repositories to discover API schemas and request definitions for continuous security analysis.",
+      "category": ["code-repo", "api-testing"],
+      "products": ["AUTO-PT"],
+      "supported": false,
+      "installable": true,
+      "docs_url": "https://docs.snapsec.co/integrations/bitbucket",
+      "logo": "https://cdn.simpleicons.org/bitbucket"
+    },
+    {
+      "type": "api-testing",
+      "id": "kong",
+      "title": "Kong API Gateway",
+      "description": "Integrate with Kong to enumerate live APIs, routes, and services directly from the API gateway layer.",
+      "category": ["api-testing", "cloud-infra"],
+      "products": ["AUTO-PT"],
+      "supported": false,
+      "installable": false,
+      "docs_url": "https://docs.snapsec.co/integrations/kong",
+      "logo": "https://cdn.simpleicons.org/kong"
+    },
+    {
+      "type": "api-testing",
+      "id": "apigee",
+      "title": "Google Apigee",
+      "description": "Connect Apigee to discover managed APIs, policies, and environments for enterprise-scale API security testing.",
+      "category": ["api-testing", "cloud-infra"],
+      "products": ["AUTO-PT"],
+      "supported": false,
+      "installable": false,
+      "docs_url": "https://docs.snapsec.co/integrations/apigee",
+      "logo": "https://cdn.simpleicons.org/googlecloud"
+    },
+    {
+      "type": "api-testing",
+      "id": "aws_api_gateway",
+      "title": "AWS API Gateway",
+      "description": "Discover REST and HTTP APIs deployed on AWS API Gateway and continuously monitor them for security issues.",
+      "category": ["api-testing", "cloud-infra"],
+      "products": ["AUTO-PT"],
+      "supported": false,
+      "installable": false,
+      "docs_url": "https://docs.snapsec.co/integrations/aws-api-gateway",
+      "logo": "https://icon.icepanel.io/AWS/svg/App-Integration/API-Gateway.svg"
+    }
+  ]
+}

@@ -11,7 +11,26 @@ export * from "./cache/index.js";
 import createAuth from "./authentication/index.js";
 import authorization from "./authorization/index.js";
 import mqbroker from "./rabbitmq/index.js";
-import { Integration, Provider, BaseProvider, capability, GithubProvider, GitlabProvider, GithubParser, GitlabParser } from "./integration/index.js";
+import {
+    Integration,
+    Provider,
+    BaseProvider,
+    capability,
+    GithubProvider,
+    GitlabProvider,
+    GithubParser,
+    GitlabParser,
+    ClaudeProvider,
+    OpenAiProvider,
+    GeminiProvider,
+    DeepseekProvider,
+    OpenrouterProvider,
+    SnapiqProvider,
+    supportedIntegrations,
+    getSupportedIntegrations,
+    getCategories,
+    getIntegrationDefinition,
+} from "./integration/index.js";
 import cache, { createCache, Cache, RedisCache, MemoryCache, BaseCache, redisService } from "./cache/index.js";
 
 function snapsecCore(...args) {
@@ -28,6 +47,16 @@ Object.assign(snapsecCore, {
     GitlabProvider,
     GithubParser,
     GitlabParser,
+    ClaudeProvider,
+    OpenAiProvider,
+    GeminiProvider,
+    DeepseekProvider,
+    OpenrouterProvider,
+    SnapiqProvider,
+    supportedIntegrations,
+    getSupportedIntegrations,
+    getCategories,
+    getIntegrationDefinition,
     BaseProvider,
     capability,
     cache,
@@ -49,6 +78,16 @@ export {
     GitlabProvider,
     GithubParser,
     GitlabParser,
+    ClaudeProvider,
+    OpenAiProvider,
+    GeminiProvider,
+    DeepseekProvider,
+    OpenrouterProvider,
+    SnapiqProvider,
+    supportedIntegrations,
+    getSupportedIntegrations,
+    getCategories,
+    getIntegrationDefinition,
     BaseProvider,
     capability,
     cache,

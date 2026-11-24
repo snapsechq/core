@@ -16,7 +16,17 @@ import {
     AzureProvider,
     OracleProvider,
     GithubProvider,
-    GitlabProvider
+    GitlabProvider,
+    ClaudeProvider,
+    OpenAiProvider,
+    GeminiProvider,
+    DeepseekProvider,
+    OpenrouterProvider,
+    SnapiqProvider,
+    supportedIntegrations,
+    getSupportedIntegrations,
+    getCategories,
+    getIntegrationDefinition
 } from "../src/integration/index.js";
 
 // Helper to encrypt text using the same algorithm and key as integration.js
@@ -1193,6 +1203,189 @@ describe("@snapsechq/core - Integration Module", () => {
                 const res = await Integration.isAiConnected({ orgId, client: integration });
                 expect(res).toBe(true);
             });
+        });
+
+        describe("getAiIntegrations & getAiModelConfig", () => {
+            const orgId = new ObjectId().toString();
+
+            it("returns decrypted AI integrations for organization", async () => {
+                const integration = new Integration();
+                const encryptedKey = encryptHelper("sk-openai-secret-12345");
+                const mockFind = vi.fn().mockReturnValue({
+                    sort: vi.fn().mockReturnValue({
+                        toArray: vi.fn().mockResolvedValue([
+                            {
+                                orgId,
+                                integrationId: "openai",
+                                name: "My OpenAI",
+                                category: ["AI"],
+                                status: "installed",
+                                config: { openai: { apiKey: encryptedKey, model: "gpt-6-astra" } }
+                            }
+                        ])
+                    })
+                });
+
+                integration.client = {
+                    topology: { isDestroyed: () => false }
+                };
+                integration.db = {
+                    collection: vi.fn().mockReturnValue({ find: mockFind })
+                };
+
+                const res = await integration.getAiIntegrations({ orgId });
+                expect(res).toHaveLength(1);
+                expect(res[0].integrationId).toBe("openai");
+                expect(res[0].config.openai.apiKey).toBe("sk-openai-secret-12345");
+            });
+
+            it("resolves specific AI model configuration via getAiModelConfig", async () => {
+                const integration = new Integration();
+                const encryptedKey = encryptHelper("sk-deepseek-key");
+                const mockFind = vi.fn().mockReturnValue({
+                    sort: vi.fn().mockReturnValue({
+                        toArray: vi.fn().mockResolvedValue([
+                            {
+                                orgId,
+                                integrationId: "deepseek",
+                                name: "DeepSeek Primary",
+                                category: ["AI"],
+                                status: "installed",
+                                config: { deepseek: { apiKey: encryptedKey, model: "deepseek-flash" } }
+                            }
+                        ])
+                    })
+                });
+
+                integration.client = {
+                    topology: { isDestroyed: () => false }
+                };
+                integration.db = {
+                    collection: vi.fn().mockReturnValue({ find: mockFind })
+                };
+
+                const conf = await integration.getAiModelConfig({ orgId, provider: "deepseek" });
+                expect(conf).toBeTruthy();
+                expect(conf.apiKey).toBe("sk-deepseek-key");
+                expect(conf.model).toBe("deepseek-flash");
+                expect(conf.type).toBe("deepseek");
+            });
+        });
+    });
+
+    describe("AI Providers Verification", () => {
+        describe("ClaudeProvider", () => {
+            it("throws when API key is missing", async () => {
+                await expect(ClaudeProvider.verifyIntegrationConfig({})).rejects.toThrow("API Key is required");
+            });
+
+            it("succeeds with skipLiveCheck flag", async () => {
+                const res = await ClaudeProvider.verifyIntegrationConfig({ apiKey: "sk-ant-test", skipLiveCheck: true });
+                expect(res).toBe(true);
+            });
+        });
+
+        describe("OpenAiProvider", () => {
+            it("throws when API key is missing", async () => {
+                await expect(OpenAiProvider.verifyIntegrationConfig({})).rejects.toThrow("API Key is required");
+            });
+
+            it("succeeds with skipLiveCheck flag", async () => {
+                const res = await OpenAiProvider.verifyIntegrationConfig({ apiKey: "sk-test", skipLiveCheck: true });
+                expect(res).toBe(true);
+            });
+        });
+
+        describe("GeminiProvider", () => {
+            it("throws when API key is missing", async () => {
+                await expect(GeminiProvider.verifyIntegrationConfig({})).rejects.toThrow("API Key is required");
+            });
+
+            it("succeeds with skipLiveCheck flag", async () => {
+                const res = await GeminiProvider.verifyIntegrationConfig({ apiKey: "AIzaTest", skipLiveCheck: true });
+                expect(res).toBe(true);
+            });
+        });
+
+        describe("DeepseekProvider", () => {
+            it("throws when API key is missing", async () => {
+                await expect(DeepseekProvider.verifyIntegrationConfig({})).rejects.toThrow("API Key is required");
+            });
+
+            it("succeeds with skipLiveCheck flag", async () => {
+                const res = await DeepseekProvider.verifyIntegrationConfig({ apiKey: "sk-deepseek-test", skipLiveCheck: true });
+                expect(res).toBe(true);
+            });
+        });
+
+        describe("OpenrouterProvider", () => {
+            it("throws when API key is missing", async () => {
+                await expect(OpenrouterProvider.verifyIntegrationConfig({})).rejects.toThrow("API Key is required");
+            });
+
+            it("succeeds with skipLiveCheck flag", async () => {
+                const res = await OpenrouterProvider.verifyIntegrationConfig({ apiKey: "sk-or-test", skipLiveCheck: true });
+                expect(res).toBe(true);
+            });
+        });
+
+        describe("SnapiqProvider", () => {
+            it("throws when endpoint or masterKey is missing", async () => {
+                await expect(SnapiqProvider.verifyIntegrationConfig({})).rejects.toThrow("Endpoint URL is required");
+                await expect(SnapiqProvider.verifyIntegrationConfig({ endpoint: "http://snapiq:4000" })).rejects.toThrow("Master Key is required");
+            });
+
+            it("succeeds with skipLiveCheck flag", async () => {
+                const res = await SnapiqProvider.verifyIntegrationConfig({
+                    endpoint: "http://snapiq:4000",
+                    masterKey: "secret-master-key",
+                    skipLiveCheck: true,
+                    models: [{ label: "llama-3.3-70b-instruct", value: "llama-3.3-70b-instruct" }]
+                });
+                expect(res.valid).toBe(true);
+                expect(res.endpoint).toBe("http://snapiq:4000");
+                expect(res.models).toHaveLength(1);
+            });
+        });
+    });
+
+    describe("Integration Definitions & Catalogs", () => {
+        it("returns all categories including AI", () => {
+            const categories = getCategories();
+            expect(categories.length).toBeGreaterThan(0);
+            expect(categories.some(c => c.value === "AI")).toBe(true);
+            expect(categories.some(c => c.value === "cloud-infra")).toBe(true);
+            expect(categories.some(c => c.value === "code-repo")).toBe(true);
+        });
+
+        it("filters integrations by category 'AI'", () => {
+            const aiIntegrations = getSupportedIntegrations({ category: "AI" });
+            expect(aiIntegrations.length).toBeGreaterThanOrEqual(6);
+            const ids = aiIntegrations.map(i => i.id);
+            expect(ids).toContain("openai");
+            expect(ids).toContain("claude");
+            expect(ids).toContain("gemini");
+            expect(ids).toContain("deepseek");
+            expect(ids).toContain("openrouter");
+            expect(ids).toContain("snapiq");
+        });
+
+        it("fetches single integration definition by id", () => {
+            const openaiDef = getIntegrationDefinition("openai");
+            expect(openaiDef).toBeTruthy();
+            expect(openaiDef.title).toBe("OpenAI");
+            expect(openaiDef.category).toContain("AI");
+            expect(openaiDef.models.length).toBeGreaterThan(0);
+        });
+
+        it("is registered in ProviderRegistry and Provider.isProviderAvailable", () => {
+            expect(Provider.isProviderAvailable("openai")).toBe(true);
+            expect(Provider.isProviderAvailable("claude")).toBe(true);
+            expect(Provider.isProviderAvailable("gemini")).toBe(true);
+            expect(Provider.isProviderAvailable("deepseek")).toBe(true);
+            expect(Provider.isProviderAvailable("openrouter")).toBe(true);
+            expect(Provider.isProviderAvailable("snapiq")).toBe(true);
+            expect(Provider.isProviderAvailable("unknown-provider")).toBe(false);
         });
     });
 });
