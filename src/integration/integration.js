@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { MongoClient, ObjectId } from "mongodb";
 import { Provider } from "./providers/provider.js";
-import { getSupportedIntegrations, getCategories, getIntegrationDefinition } from "./definitions/index.js";
+import { supportedIntegrations, getSupportedIntegrations, getCategories, getIntegrationDefinition } from "./definitions/index.js";
 
 const DEFAULT_OPTIONS = {
     maxPoolSize: 10,
@@ -241,6 +241,9 @@ export class Integration {
     }
 
     getDb() {
+        if (!this.db && this.client && typeof this.client.db === "function") {
+            this.db = this.client.db(this.databaseName || "integrations");
+        }
         if (!this.db) {
             throw new Error("[Integration][MongoDB] Database is not initialized. Call connect() first.");
         }
@@ -406,15 +409,16 @@ export class Integration {
             return Integration._hasEnvAiKeys();
         }
 
+        const staticList = Array.isArray(supportedIntegrations.integrations)
+            ? supportedIntegrations.integrations
+            : [];
+
         try {
-            // 1. Primary check: integrations DB (integrations collection)
+            // 1. Primary check: get integrations for the organization
             const integrationsCol = this.getCollection("integrations");
             const integrations = await integrationsCol.find({
                 ...orgQuery,
-                $or: [
-                    { category: { $in: ["AI", "ai", "ai-provider"] } },
-                    { integrationId: { $in: [...AI_TYPES, "ai"] } }
-                ]
+                status: { $nin: ["failed", "refresh_error", "disabled", "inactive"] }
             }).toArray();
 
             for (const item of integrations) {
@@ -422,7 +426,20 @@ export class Integration {
                 if (["failed", "refresh_error", "disabled", "inactive"].includes(status)) {
                     continue;
                 }
-                if (item.config && typeof item.config === "object" && Object.keys(item.config).length > 0) {
+
+                const instanceId = String(item.integrationId || item.type || "").toLowerCase().trim();
+                const staticConfig = staticList.find(a => (a.id || "").toLowerCase() === instanceId);
+
+                // Populate category field using supported integrations definitions or document category
+                let categories = [];
+                if (Array.isArray(item.category) && item.category.length > 0) {
+                    categories = item.category;
+                } else if (staticConfig && Array.isArray(staticConfig.category)) {
+                    categories = staticConfig.category;
+                }
+
+                // If category includes "AI" return true
+                if (categories.some(cat => String(cat).toUpperCase() === "AI")) {
                     return true;
                 }
             }
@@ -436,11 +453,7 @@ export class Integration {
             const adapterConfigsCol = autoDb.collection("adapterconfigs");
             const adapters = await adapterConfigsCol.find({
                 ...orgQuery,
-                $or: [
-                    { type: { $in: AI_TYPES } },
-                    { category: { $in: ["AI", "ai", "ai-provider"] } },
-                    { adapter_type: "ai-provider" }
-                ]
+                status: { $nin: ["inactive", "disabled", "error", "failed"] }
             }).toArray();
 
             for (const adapter of adapters) {
@@ -449,23 +462,14 @@ export class Integration {
                     continue;
                 }
 
-                let configObj = adapter.config || {};
-                if (typeof configObj === "string") {
-                    try {
-                        configObj = JSON.parse(configObj);
-                    } catch {
-                        // ignore JSON parse error
-                    }
-                }
-
                 const atype = String(adapter.type || "").toLowerCase().trim();
                 const apiKey = adapter.apiKey || adapter.masterKey || adapter.token ||
-                    configObj.apiKey || configObj.masterKey || configObj.token;
+                    adapter.config?.apiKey || adapter.config?.masterKey || adapter.config?.token;
 
                 if (atype === "snapiq") {
-                    const masterKey = adapter.masterKey || adapter.apiKey || configObj.masterKey || configObj.apiKey;
-                    const endpoint = adapter.endpoint || adapter.baseUrl || configObj.endpoint || configObj.baseUrl;
-                    if (masterKey && String(masterKey).trim() && endpoint && String(endpoint).trim()) {
+                    const masterKey = adapter.masterKey || adapter.apiKey;
+                    const endpoint = adapter.endpoint || adapter.baseUrl;
+                    if (masterKey && endpoint) {
                         return true;
                     }
                 } else if (apiKey && String(apiKey).trim().length > 0) {
