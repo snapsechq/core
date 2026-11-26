@@ -1429,5 +1429,102 @@ describe("@snapsechq/core - Integration Module", () => {
             expect(Provider.isProviderAvailable("unknown-provider")).toBe(false);
         });
     });
+
+    describe("Integration verifyAiCredentials & updateIntegrationStatus", () => {
+        let mockCollection;
+        let mockDb;
+        let integration;
+
+        beforeEach(() => {
+            Integration.reset();
+            mockCollection = {
+                find: vi.fn(),
+                updateOne: vi.fn().mockResolvedValue({ acknowledged: true, modifiedCount: 1 }),
+            };
+            mockDb = {
+                collection: vi.fn().mockReturnValue(mockCollection),
+            };
+            integration = Integration.init({
+                client: {
+                    topology: { isDestroyed: () => false },
+                    db: vi.fn().mockReturnValue(mockDb)
+                },
+                dbName: "integrations",
+                encryptionKey: "test-secret-key-at-least-32-chars"
+            });
+            integration.db = mockDb;
+        });
+
+        it("updateIntegrationStatus updates status and errMessage in integrations collection", async () => {
+            await integration.updateIntegrationStatus({
+                orgId: "org-123",
+                integrationId: "deepseek",
+                status: "failed",
+                errMessage: "API key invalid or revoked"
+            });
+
+            expect(mockCollection.updateOne).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    orgId: "org-123",
+                    $or: [{ integrationId: "deepseek" }, { type: "deepseek" }]
+                }),
+                expect.objectContaining({
+                    $set: expect.objectContaining({
+                        status: "failed",
+                        errMessage: "API key invalid or revoked"
+                    })
+                })
+            );
+        });
+
+        it("verifyAiCredentials succeeds when provider verification passes", async () => {
+            mockCollection.find.mockReturnValue({
+                sort: vi.fn().mockReturnValue({
+                    toArray: vi.fn().mockResolvedValue([
+                        {
+                            integrationId: "deepseek",
+                            category: ["AI"],
+                            status: "installed",
+                            config: { deepseek: { apiKey: "sk-valid-key", skipLiveCheck: true } }
+                        }
+                    ])
+                })
+            });
+
+            const result = await Integration.verifyAiCredentials({ orgId: "org-123", provider: "deepseek" });
+            expect(result).toBe(true);
+            expect(mockCollection.updateOne).not.toHaveBeenCalled();
+        });
+
+        it("verifyAiCredentials updates status to failed and throws when credentials are revoked/invalid", async () => {
+            mockCollection.find.mockReturnValue({
+                sort: vi.fn().mockReturnValue({
+                    toArray: vi.fn().mockResolvedValue([
+                        {
+                            integrationId: "deepseek",
+                            category: ["AI"],
+                            status: "installed",
+                            config: { deepseek: { apiKey: "" } } // missing key causes Provider to throw
+                        }
+                    ])
+                })
+            });
+
+            await expect(
+                Integration.verifyAiCredentials({ orgId: "org-123", provider: "deepseek" })
+            ).rejects.toThrow(/AI provider 'deepseek' credentials are invalid or revoked/);
+
+            expect(mockCollection.updateOne).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    orgId: "org-123"
+                }),
+                expect.objectContaining({
+                    $set: expect.objectContaining({
+                        status: "failed"
+                    })
+                })
+            );
+        });
+    });
 });
 

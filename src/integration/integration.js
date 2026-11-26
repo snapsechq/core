@@ -516,6 +516,100 @@ export class Integration {
     }
 
     /**
+     * Update status and error message of an integration record in the database.
+     *
+     * @param {Object} params
+     * @param {string|ObjectId} [params.id] - Document _id
+     * @param {string} [params.orgId] - Organization ID
+     * @param {string} [params.integrationId] - Integration provider slug (e.g. "deepseek", "openai")
+     * @param {string} params.status - New status (e.g. "installed", "failed")
+     * @param {string} [params.errMessage=""] - Reason or error message
+     * @returns {Promise<any>}
+     */
+    async updateIntegrationStatus({ id, orgId, integrationId, status, errMessage = "" } = {}) {
+        if (!this.isConnected() && !this.db) {
+            await this.connect();
+        }
+        const collection = this.getCollection("integrations");
+        const filter = {};
+        if (id) {
+            filter._id = typeof id === "string" && ObjectId.isValid(id) ? new ObjectId(id) : id;
+        }
+        if (orgId) {
+            const orgQuery = typeof orgId === "string" && ObjectId.isValid(orgId)
+                ? { $or: [{ orgId: String(orgId) }, { orgId: new ObjectId(orgId) }] }
+                : { orgId: String(orgId) };
+            Object.assign(filter, orgQuery);
+        }
+        if (integrationId) {
+            filter.$or = [{ integrationId }, { type: integrationId }];
+        }
+        return await collection.updateOne(filter, {
+            $set: {
+                status,
+                errMessage,
+                updatedAt: new Date()
+            }
+        });
+    }
+
+    /**
+     * Live verify AI credentials for an organization and active provider.
+     * Fetches and decrypts credentials, invokes Provider.verifyIntegrationConfig,
+     * and on failure updates the integration status in MongoDB to 'failed' and throws.
+     *
+     * @param {Object} params
+     * @param {string} params.orgId
+     * @param {string} [params.provider]
+     * @returns {Promise<boolean>}
+     */
+    async verifyAiCredentials({ orgId, provider } = {}) {
+        if (!orgId) return false;
+        if (!this.isConnected() && !this.db) {
+            await this.connect();
+        }
+
+        const config = await this.getAiModelConfig({ orgId, provider, decrypt: true });
+        if (!config) {
+            throw new Error("[Integration] No AI provider configuration found for organization.");
+        }
+
+        let providerId = (config.integrationId || provider || "").toLowerCase().trim();
+        if (providerId.includes("/")) {
+            providerId = providerId.split("/")[0].toLowerCase().trim();
+        }
+
+        const PROVIDER_ALIASES = {
+            anthropic: "claude",
+            google: "gemini",
+            litellm: "snapiq"
+        };
+        const resolvedProviderId = PROVIDER_ALIASES[providerId] || providerId;
+
+        if (!Provider.isProviderAvailable(resolvedProviderId)) {
+            return true;
+        }
+
+        try {
+            await Provider.verifyIntegrationConfig(resolvedProviderId, config);
+            return true;
+        } catch (error) {
+            try {
+                await this.updateIntegrationStatus({
+                    orgId,
+                    integrationId: providerId,
+                    status: "failed",
+                    errMessage: `API key invalid or revoked: ${error.message}`
+                });
+            } catch (dbErr) {
+                console.warn(`[Integration] Could not update failed status in database:`, dbErr.message);
+            }
+
+            throw new Error(`AI provider '${resolvedProviderId}' credentials are invalid or revoked: ${error.message}`);
+        }
+    }
+
+    /**
      * Static helper for isAiConnected.
      * Can be invoked directly as `Integration.isAiConnected({ orgId })`.
      * Uses the default/active Integration instance or provided client/instance.
@@ -530,6 +624,33 @@ export class Integration {
             );
         }
         return await inst.isAiConnected({ orgId });
+    }
+
+    /**
+     * Static helper for verifyAiCredentials.
+     */
+    static async verifyAiCredentials({ orgId, provider, client = null } = {}) {
+        const inst = client instanceof Integration
+            ? client
+            : (client ? new Integration({ client }) : Integration._defaultInstance);
+        if (!inst) {
+            throw new Error("[Integration] Integration is not initialized.");
+        }
+        return await inst.verifyAiCredentials({ orgId, provider });
+    }
+
+    /**
+     * Static helper for updateIntegrationStatus.
+     */
+    static async updateIntegrationStatus(params = {}) {
+        const client = params.client;
+        const inst = client instanceof Integration
+            ? client
+            : (client ? new Integration({ client }) : Integration._defaultInstance);
+        if (!inst) {
+            throw new Error("[Integration] Integration is not initialized.");
+        }
+        return await inst.updateIntegrationStatus(params);
     }
 
     /**
