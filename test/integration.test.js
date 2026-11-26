@@ -1019,6 +1019,41 @@ describe("@snapsechq/core - Integration Module", () => {
             expect(integration.getDb()).toBe(mockDb);
         });
 
+        it("constructs URI from environment variables with database rewriting", () => {
+            const originalUrl = process.env.MONGODB_URL;
+            try {
+                process.env.MONGODB_URL = "mongodb://admin:secret123@mongo-cluster:27017/automations?authSource=admin&replicaSet=rs0";
+                const inst = new Integration();
+                expect(inst.uri).toBe("mongodb://admin:secret123@mongo-cluster:27017/integrations?authSource=admin&replicaSet=rs0");
+            } finally {
+                if (originalUrl !== undefined) process.env.MONGODB_URL = originalUrl;
+                else delete process.env.MONGODB_URL;
+            }
+        });
+
+        it("constructs URI from environment host, port, user, pass", () => {
+            const oldHost = process.env.MONGODB_HOST;
+            const oldPort = process.env.MONGODB_PORT;
+            const oldUser = process.env.MONGODB_USER;
+            const oldPass = process.env.MONGODB_PASS;
+            const oldUrl = process.env.MONGODB_URL;
+            try {
+                delete process.env.MONGODB_URL;
+                process.env.MONGODB_HOST = "mongodb";
+                process.env.MONGODB_PORT = "27017";
+                process.env.MONGODB_USER = "snapsec";
+                process.env.MONGODB_PASS = "p@ssword";
+                const inst = new Integration();
+                expect(inst.uri).toBe("mongodb://snapsec:p%40ssword@mongodb:27017/integrations?authSource=admin");
+            } finally {
+                if (oldHost !== undefined) process.env.MONGODB_HOST = oldHost; else delete process.env.MONGODB_HOST;
+                if (oldPort !== undefined) process.env.MONGODB_PORT = oldPort; else delete process.env.MONGODB_PORT;
+                if (oldUser !== undefined) process.env.MONGODB_USER = oldUser; else delete process.env.MONGODB_USER;
+                if (oldPass !== undefined) process.env.MONGODB_PASS = oldPass; else delete process.env.MONGODB_PASS;
+                if (oldUrl !== undefined) process.env.MONGODB_URL = oldUrl; else delete process.env.MONGODB_URL;
+            }
+        });
+
         it("getCollection delegates to db.collection", () => {
             const integration = new Integration();
             const mockCollection = { find: vi.fn() };

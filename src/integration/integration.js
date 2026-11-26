@@ -71,34 +71,59 @@ export class Integration {
         MONGODB_PORT,
         MONGODB_USER,
         MONGODB_PASS,
-        INTEGRATIONS_DB = "integrations",
-        AUTH_SOURCE = "admin",
+        INTEGRATIONS_DB,
+        AUTH_SOURCE,
         REPLICA_SET,
         mongoOptions = {},
         retryConfig = {},
         ENCRYPTION_KEY
     } = {}) {
-        this.dbName = INTEGRATIONS_DB;
+        const targetDb = INTEGRATIONS_DB || process.env.INTEGRATIONS_DB || "integrations";
+        this.dbName = targetDb;
 
-        if (MONGODB_URI) {
-            this.uri = MONGODB_URI;
-        } else if (MONGODB_HOST && MONGODB_PORT) {
-            const authPart = MONGODB_USER && MONGODB_PASS
-                ? `${encodeURIComponent(MONGODB_USER)}:${encodeURIComponent(MONGODB_PASS)}@`
+        const rawUri = MONGODB_URI || process.env.INTEGRATIONS_MONGODB_URI || process.env.MONGODB_URI || process.env.MONGODB_URL;
+        const host = MONGODB_HOST || process.env.MONGODB_HOST;
+        const port = MONGODB_PORT || process.env.MONGODB_PORT;
+        const user = MONGODB_USER !== undefined ? MONGODB_USER : process.env.MONGODB_USER;
+        const pass = MONGODB_PASS !== undefined ? MONGODB_PASS : process.env.MONGODB_PASS;
+        const authSource = AUTH_SOURCE || process.env.MONGODB_AUTH_SOURCE || process.env.AUTH_SOURCE || "admin";
+        const replicaSet = REPLICA_SET || process.env.MONGODB_REPLICA_SET || process.env.REPLICA_SET;
+
+        if (rawUri) {
+            // If the URI specifies a database name, replace it with targetDb while preserving query params
+            let parsedUri = rawUri;
+            if (targetDb) {
+                parsedUri = parsedUri.replace(/\/[^/?]+(\?|$)/, `/${targetDb}$1`);
+            }
+            this.uri = parsedUri;
+        } else if (host && port) {
+            const authPart = user && pass
+                ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`
                 : "";
 
             const queryParams = [];
-            if (MONGODB_USER && AUTH_SOURCE) {
-                queryParams.push(`authSource=${AUTH_SOURCE}`);
+            if (user && authSource) {
+                queryParams.push(`authSource=${authSource}`);
             }
-            if (REPLICA_SET) {
-                queryParams.push(`replicaSet=${REPLICA_SET}`);
+            if (replicaSet) {
+                queryParams.push(`replicaSet=${replicaSet}`);
             }
 
             const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
-            this.uri = `mongodb://${authPart}${MONGODB_HOST}:${MONGODB_PORT}/${INTEGRATIONS_DB}${queryString}`;
+            this.uri = `mongodb://${authPart}${host}:${port}/${targetDb}${queryString}`;
+        } else if (user && pass) {
+            const authPart = `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`;
+            const queryParams = [];
+            if (authSource) {
+                queryParams.push(`authSource=${authSource}`);
+            }
+            if (replicaSet) {
+                queryParams.push(`replicaSet=${replicaSet}`);
+            }
+            const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
+            this.uri = `mongodb://${authPart}127.0.0.1:27017/${targetDb}${queryString}`;
         } else {
-            this.uri = `mongodb://127.0.0.1:27017/${INTEGRATIONS_DB}`;
+            this.uri = `mongodb://127.0.0.1:27017/${targetDb}`;
         }
 
         this.mongoOptions = {
