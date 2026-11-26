@@ -80,11 +80,23 @@ describe("@snapsechq/core - Integration Module", () => {
     describe("Decryption Utilities (decrypt & decryptConfig)", () => {
         const testKey = "test-secret-key-32-characters-ok!";
 
-        it("decrypts AES-256-CBC encrypted string with default key", () => {
+        beforeEach(() => {
+            Integration.init({ encryptionKey: "your-secret-key-at-least-32-chars-long" });
+        });
+
+        it("decrypts AES-256-CBC encrypted string when key is configured via Integration.init", () => {
             const secret = "super-secret-aws-token";
-            const encrypted = encryptHelper(secret);
+            const customKey = "my-secret-key-at-least-32-chars-long";
+            Integration.init({ encryptionKey: customKey });
+            const encrypted = encryptHelper(secret, customKey);
             const decrypted = decrypt(encrypted);
             expect(decrypted).toBe(secret);
+        });
+
+        it("throws when encryption key is missing for decryption", () => {
+            Integration.reset();
+            const encrypted = "0123456789abcdef0123456789abcdef:123456";
+            expect(() => decrypt(encrypted)).toThrow("Encryption key is required for decryption");
         });
 
         it("decrypts string with a custom key", () => {
@@ -942,9 +954,9 @@ describe("@snapsechq/core - Integration Module", () => {
     });
 
     describe("Integration Class", () => {
-        it("constructs default MongoDB URI when no parameters provided", () => {
+        it("leaves uri null when no parameters provided", () => {
             const integration = new Integration();
-            expect(integration.uri).toBe("mongodb://127.0.0.1:27017/integrations");
+            expect(integration.uri).toBeNull();
             expect(integration.dbName).toBe("integrations");
         });
 
@@ -1019,39 +1031,33 @@ describe("@snapsechq/core - Integration Module", () => {
             expect(integration.getDb()).toBe(mockDb);
         });
 
-        it("constructs URI from environment variables with database rewriting", () => {
-            const originalUrl = process.env.MONGODB_URL;
-            try {
-                process.env.MONGODB_URL = "mongodb://admin:secret123@mongo-cluster:27017/automations?authSource=admin&replicaSet=rs0";
-                const inst = new Integration();
-                expect(inst.uri).toBe("mongodb://admin:secret123@mongo-cluster:27017/integrations?authSource=admin&replicaSet=rs0");
-            } finally {
-                if (originalUrl !== undefined) process.env.MONGODB_URL = originalUrl;
-                else delete process.env.MONGODB_URL;
-            }
+        it("initializes singleton via Integration.init with uri and database rewriting", () => {
+            const customUrl = "mongodb://admin:secret123@mongo-cluster:27017/automations?authSource=admin&replicaSet=rs0";
+            const inst = Integration.init({
+                uri: customUrl,
+                dbName: "integrations"
+            });
+            expect(inst.uri).toBe("mongodb://admin:secret123@mongo-cluster:27017/integrations?authSource=admin&replicaSet=rs0");
+            expect(Integration.getDefaultInstance()).toBe(inst);
         });
 
-        it("constructs URI from environment host, port, user, pass", () => {
-            const oldHost = process.env.MONGODB_HOST;
-            const oldPort = process.env.MONGODB_PORT;
-            const oldUser = process.env.MONGODB_USER;
-            const oldPass = process.env.MONGODB_PASS;
-            const oldUrl = process.env.MONGODB_URL;
-            try {
-                delete process.env.MONGODB_URL;
-                process.env.MONGODB_HOST = "mongodb";
-                process.env.MONGODB_PORT = "27017";
-                process.env.MONGODB_USER = "snapsec";
-                process.env.MONGODB_PASS = "p@ssword";
-                const inst = new Integration();
-                expect(inst.uri).toBe("mongodb://snapsec:p%40ssword@mongodb:27017/integrations?authSource=admin");
-            } finally {
-                if (oldHost !== undefined) process.env.MONGODB_HOST = oldHost; else delete process.env.MONGODB_HOST;
-                if (oldPort !== undefined) process.env.MONGODB_PORT = oldPort; else delete process.env.MONGODB_PORT;
-                if (oldUser !== undefined) process.env.MONGODB_USER = oldUser; else delete process.env.MONGODB_USER;
-                if (oldPass !== undefined) process.env.MONGODB_PASS = oldPass; else delete process.env.MONGODB_PASS;
-                if (oldUrl !== undefined) process.env.MONGODB_URL = oldUrl; else delete process.env.MONGODB_URL;
-            }
+        it("initializes singleton via Integration.init or setClient with direct Mongo client", () => {
+            const mockClient = {
+                topology: { isDestroyed: () => false },
+                db: vi.fn((name) => ({ dbName: name }))
+            };
+            const inst = Integration.init({
+                client: mockClient,
+                dbName: "integrations",
+                encryptionKey: "test-encryption-key-123456789012"
+            });
+            expect(inst.client).toBe(mockClient);
+            expect(inst.encryptionKey).toBe("test-encryption-key-123456789012");
+            expect(inst.isConnected()).toBe(true);
+            expect(Integration.getDefaultInstance()).toBe(inst);
+
+            Integration.setClient(mockClient, "custom_integrations");
+            expect(Integration.getDefaultInstance().dbName).toBe("custom_integrations");
         });
 
         it("getCollection delegates to db.collection", () => {
@@ -1101,7 +1107,7 @@ describe("@snapsechq/core - Integration Module", () => {
         });
 
         it("getIntegration queries database and decrypts config", async () => {
-            const integration = new Integration();
+            const integration = new Integration({ encryptionKey: "your-secret-key-at-least-32-chars-long" });
             const testId = new ObjectId().toString();
             const rawSecret = "super-secret-pat";
             const mockDoc = {
@@ -1244,7 +1250,7 @@ describe("@snapsechq/core - Integration Module", () => {
             const orgId = new ObjectId().toString();
 
             it("returns decrypted AI integrations for organization", async () => {
-                const integration = new Integration();
+                const integration = new Integration({ encryptionKey: "your-secret-key-at-least-32-chars-long" });
                 const encryptedKey = encryptHelper("sk-openai-secret-12345");
                 const mockFind = vi.fn().mockReturnValue({
                     sort: vi.fn().mockReturnValue({
@@ -1275,7 +1281,7 @@ describe("@snapsechq/core - Integration Module", () => {
             });
 
             it("resolves specific AI model configuration via getAiModelConfig", async () => {
-                const integration = new Integration();
+                const integration = new Integration({ encryptionKey: "your-secret-key-at-least-32-chars-long" });
                 const encryptedKey = encryptHelper("sk-deepseek-key");
                 const mockFind = vi.fn().mockReturnValue({
                     sort: vi.fn().mockReturnValue({

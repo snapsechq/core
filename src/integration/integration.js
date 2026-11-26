@@ -19,19 +19,23 @@ const DEFAULT_RETRY_CONFIG = {
 
 
 const ALGORITHM = "aes-256-cbc";
-const DEFAULT_ENCRYPTION_KEY = "your-secret-key-at-least-32-chars-long";
 
-export function decrypt(text, keyString = process.env.ENCRYPTION_KEY || DEFAULT_ENCRYPTION_KEY) {
+export function decrypt(text, keyString = Integration._defaultInstance?.encryptionKey) {
     if (!text || typeof text !== "string") return text;
 
-    try {
-        const parts = text.split(":");
-        if (parts.length !== 2) return text;
-        const [ivHex, encryptedText] = parts;
-        if (!ivHex || !encryptedText || ivHex.length !== 32) return text;
+    const parts = text.split(":");
+    if (parts.length !== 2) return text;
+    const [ivHex, encryptedText] = parts;
+    if (!ivHex || !encryptedText || ivHex.length !== 32) return text;
 
+    const keyToUse = keyString || Integration._defaultInstance?.encryptionKey;
+    if (!keyToUse) {
+        throw new Error("[Integration] Encryption key is required for decryption.");
+    }
+
+    try {
         const iv = Buffer.from(ivHex, "hex");
-        const key = crypto.createHash("sha256").update(keyString).digest();
+        const key = crypto.createHash("sha256").update(keyToUse).digest();
         const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
 
         let decrypted = decipher.update(encryptedText, "hex", "utf8");
@@ -43,8 +47,13 @@ export function decrypt(text, keyString = process.env.ENCRYPTION_KEY || DEFAULT_
     }
 }
 
-export function decryptConfig(config, keyString = process.env.ENCRYPTION_KEY || DEFAULT_ENCRYPTION_KEY) {
+export function decryptConfig(config, keyString = Integration._defaultInstance?.encryptionKey) {
     if (!config) return config;
+    const keyToUse = keyString || Integration._defaultInstance?.encryptionKey;
+    if (!keyToUse) {
+        throw new Error("[Integration] Encryption key is required for decryption.");
+    }
+
     const configObj = config.toObject ? config.toObject() : config;
     if (typeof configObj !== "object") return configObj;
 
@@ -52,9 +61,9 @@ export function decryptConfig(config, keyString = process.env.ENCRYPTION_KEY || 
     for (const [key, value] of Object.entries(configObj)) {
         if (value !== undefined && value !== null) {
             if (typeof value === "object") {
-                decryptedConfig[key] = decryptConfig(value, keyString);
+                decryptedConfig[key] = decryptConfig(value, keyToUse);
             } else if (typeof value === "string") {
-                decryptedConfig[key] = decrypt(value, keyString);
+                decryptedConfig[key] = decrypt(value, keyToUse);
             } else {
                 decryptedConfig[key] = value;
             }
@@ -66,64 +75,80 @@ export function decryptConfig(config, keyString = process.env.ENCRYPTION_KEY || 
 export class Integration {
 
     constructor({
+        client,
+        db,
+        uri,
         MONGODB_URI,
         MONGODB_HOST,
         MONGODB_PORT,
         MONGODB_USER,
         MONGODB_PASS,
         INTEGRATIONS_DB,
+        dbName,
         AUTH_SOURCE,
+        authSource,
         REPLICA_SET,
+        replicaSet,
         mongoOptions = {},
         retryConfig = {},
-        ENCRYPTION_KEY
+        ENCRYPTION_KEY,
+        encryptionKey
     } = {}) {
-        const targetDb = INTEGRATIONS_DB || process.env.INTEGRATIONS_DB || "integrations";
+        const targetDb = dbName || INTEGRATIONS_DB || "integrations";
         this.dbName = targetDb;
 
-        const rawUri = MONGODB_URI || process.env.INTEGRATIONS_MONGODB_URI || process.env.MONGODB_URI || process.env.MONGODB_URL;
-        const host = MONGODB_HOST || process.env.MONGODB_HOST;
-        const port = MONGODB_PORT || process.env.MONGODB_PORT;
-        const user = MONGODB_USER !== undefined ? MONGODB_USER : process.env.MONGODB_USER;
-        const pass = MONGODB_PASS !== undefined ? MONGODB_PASS : process.env.MONGODB_PASS;
-        const authSource = AUTH_SOURCE || process.env.MONGODB_AUTH_SOURCE || process.env.AUTH_SOURCE || "admin";
-        const replicaSet = REPLICA_SET || process.env.MONGODB_REPLICA_SET || process.env.REPLICA_SET;
+        this.client = null;
+        this.db = null;
+        this.connection = null; // Alias to client for backward compatibility
+        this.connectingPromise = null;
+        this.encryptionKey = encryptionKey || ENCRYPTION_KEY || null;
 
-        if (rawUri) {
-            // If the URI specifies a database name, replace it with targetDb while preserving query params
-            let parsedUri = rawUri;
-            if (targetDb) {
-                parsedUri = parsedUri.replace(/\/[^/?]+(\?|$)/, `/${targetDb}$1`);
-            }
-            this.uri = parsedUri;
-        } else if (host && port) {
-            const authPart = user && pass
-                ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`
-                : "";
-
-            const queryParams = [];
-            if (user && authSource) {
-                queryParams.push(`authSource=${authSource}`);
-            }
-            if (replicaSet) {
-                queryParams.push(`replicaSet=${replicaSet}`);
-            }
-
-            const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
-            this.uri = `mongodb://${authPart}${host}:${port}/${targetDb}${queryString}`;
-        } else if (user && pass) {
-            const authPart = `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`;
-            const queryParams = [];
-            if (authSource) {
-                queryParams.push(`authSource=${authSource}`);
-            }
-            if (replicaSet) {
-                queryParams.push(`replicaSet=${replicaSet}`);
-            }
-            const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
-            this.uri = `mongodb://${authPart}127.0.0.1:27017/${targetDb}${queryString}`;
+        // 1. Direct Mongo client provided (e.g. from mongoose.connection.client)
+        if (client) {
+            this.client = client;
+            this.db = db || (typeof client.db === "function" ? client.db(targetDb) : null);
+            this.connection = client;
+            this.uri = null;
+        } else if (db) {
+            this.db = db;
+            this.client = db.client || null;
+            this.connection = this.client;
+            this.uri = null;
         } else {
-            this.uri = `mongodb://127.0.0.1:27017/${targetDb}`;
+            // 2. Explicit connection URI or parameters
+            const rawUri = uri || MONGODB_URI;
+            const host = MONGODB_HOST;
+            const port = MONGODB_PORT;
+            const user = MONGODB_USER;
+            const pass = MONGODB_PASS;
+            const authSrc = authSource || AUTH_SOURCE || "admin";
+            const replSet = replicaSet || REPLICA_SET;
+
+            if (rawUri) {
+                let parsedUri = rawUri;
+                if (targetDb) {
+                    parsedUri = parsedUri.replace(/\/[^/?]+(\?|$)/, `/${targetDb}$1`);
+                }
+                this.uri = parsedUri;
+            } else if (host && port) {
+                const authPart = user && pass
+                    ? `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`
+                    : "";
+                const queryParams = [];
+                if (user && authSrc) {
+                    queryParams.push(`authSource=${authSrc}`);
+                }
+                if (replSet) {
+                    queryParams.push(`replicaSet=${replSet}`);
+                }
+                const queryString = queryParams.length > 0 ? `?${queryParams.join("&")}` : "";
+                this.uri = `mongodb://${authPart}${host}:${port}/${targetDb}${queryString}`;
+            } else if (user && pass) {
+                const authPart = `${encodeURIComponent(user)}:${encodeURIComponent(pass)}@`;
+                this.uri = `mongodb://${authPart}127.0.0.1:27017/${targetDb}`;
+            } else {
+                this.uri = null;
+            }
         }
 
         this.mongoOptions = {
@@ -135,12 +160,6 @@ export class Integration {
             ...DEFAULT_RETRY_CONFIG,
             ...retryConfig
         };
-
-        this.client = null;
-        this.db = null;
-        this.connection = null; // Alias to client for backward compatibility
-        this.connectingPromise = null;
-        this.encryptionKey = ENCRYPTION_KEY || process.env.ENCRYPTION_KEY || DEFAULT_ENCRYPTION_KEY;
 
         if (!Integration._defaultInstance) {
             Integration._defaultInstance = this;
@@ -176,6 +195,12 @@ export class Integration {
     async connect() {
         if (this.client && this.isConnected()) {
             return this.client;
+        }
+
+        if (!this.uri) {
+            throw new Error(
+                "[Integration] Cannot connect: database configuration is missing."
+            );
         }
 
         if (this.connectingPromise) {
@@ -390,36 +415,51 @@ export class Integration {
     }
 
     /**
-     * Internal helper to check environment variables for AI keys
+     * Initialize or reconfigure the shared singleton Integration instance.
+     * Host services call this once at startup (e.g. in database/connection.js or connect-db.js).
+     *
+     * @param {Object} config
+     * @param {MongoClient|Object} [config.client] - Existing active MongoDB client (e.g. mongoose.connection.client)
+     * @param {Db} [config.db] - Target database instance
+     * @param {string} [config.uri] - MongoDB connection string
+     * @param {string} [config.dbName="integrations"] - Database name
+     * @param {string} [config.encryptionKey] - Secret key for decryption
+     * @returns {Integration}
      */
-    static _hasEnvAiKeys() {
-        const envKeys = [
-            process.env.OPENAI_API_KEY,
-            process.env.ANTHROPIC_API_KEY,
-            process.env.GEMINI_API_KEY,
-            process.env.DEEPSEEK_API_KEY,
-            process.env.SNAPIQ_API_KEY
-        ].filter(Boolean);
-        return envKeys.length > 0;
+    static init(config = {}) {
+        const inst = new Integration(config);
+        Integration._defaultInstance = inst;
+        return inst;
+    }
+
+    static configure(config = {}) {
+        return Integration.init(config);
+    }
+
+    static setClient(client, dbName = "integrations", encryptionKey) {
+        return Integration.init({ client, dbName, encryptionKey });
+    }
+
+    static getDefaultInstance() {
+        return Integration._defaultInstance || null;
+    }
+
+    static reset() {
+        Integration._defaultInstance = null;
     }
 
     /**
      * Check if AI capabilities are configured and healthy for an organization.
-     * Checks integrations database (integrations) primarily, with fallback to automations.adapterconfigs
-     * and environment variables.
+     * Evaluates installed integrations and verifies if any has category "AI".
      *
      * @param {Object} params
      * @param {string} params.orgId - Organization ID
-     * @param {boolean} [params.checkHealth=false] - Whether to perform a live health check ping
-     * @param {string} [params.automationsDb] - Database name for automations (defaults to process.env.AUTOMATIONS_DB or "automations")
      * @returns {Promise<boolean>}
      */
-    async isAiConnected({ orgId, checkHealth = false, automationsDb = process.env.AUTOMATIONS_DB || "automations" } = {}) {
+    async isAiConnected({ orgId } = {}) {
         if (!orgId) {
             return false;
         }
-
-        const AI_TYPES = ["openai", "claude", "anthropic", "gemini", "google", "deepseek", "snapiq", "openrouter"];
 
         const orgQuery = typeof orgId === "string" && ObjectId.isValid(orgId)
             ? { $or: [{ orgId: String(orgId) }, { orgId: new ObjectId(orgId) }] }
@@ -431,7 +471,7 @@ export class Integration {
             }
         } catch (connErr) {
             console.warn(`[Integration] Could not connect to MongoDB in isAiConnected:`, connErr.message);
-            return Integration._hasEnvAiKeys();
+            return false;
         }
 
         const staticList = Array.isArray(supportedIntegrations.integrations)
@@ -439,7 +479,7 @@ export class Integration {
             : [];
 
         try {
-            // 1. Primary check: get integrations for the organization
+            // Primary check: get integrations for the organization
             const integrationsCol = this.getCollection("integrations");
             const integrations = await integrationsCol.find({
                 ...orgQuery,
@@ -469,45 +509,7 @@ export class Integration {
                 }
             }
         } catch (err) {
-            console.warn(`[Integration] Error querying integrations.integrations:`, err.message);
-        }
-
-        try {
-            // 2. Legacy fallback check: automations DB (adapterconfigs collection) during migration
-            const autoDb = this.client.db(automationsDb);
-            const adapterConfigsCol = autoDb.collection("adapterconfigs");
-            const adapters = await adapterConfigsCol.find({
-                ...orgQuery,
-                status: { $nin: ["inactive", "disabled", "error", "failed"] }
-            }).toArray();
-
-            for (const adapter of adapters) {
-                const status = String(adapter.status || "active").toLowerCase().trim();
-                if (["inactive", "disabled", "error", "failed"].includes(status)) {
-                    continue;
-                }
-
-                const atype = String(adapter.type || "").toLowerCase().trim();
-                const apiKey = adapter.apiKey || adapter.masterKey || adapter.token ||
-                    adapter.config?.apiKey || adapter.config?.masterKey || adapter.config?.token;
-
-                if (atype === "snapiq") {
-                    const masterKey = adapter.masterKey || adapter.apiKey;
-                    const endpoint = adapter.endpoint || adapter.baseUrl;
-                    if (masterKey && endpoint) {
-                        return true;
-                    }
-                } else if (apiKey && String(apiKey).trim().length > 0) {
-                    return true;
-                }
-            }
-        } catch (err) {
-            // automations DB check failure is non-blocking
-        }
-
-        // 3. Fallback to process.env keys (useful for standalone / test environments)
-        if (Integration._hasEnvAiKeys()) {
-            return true;
+            console.warn(`[Integration] Error querying integrations:`, err.message);
         }
 
         return false;
@@ -516,18 +518,32 @@ export class Integration {
     /**
      * Static helper for isAiConnected.
      * Can be invoked directly as `Integration.isAiConnected({ orgId })`.
-     * Uses the default/active Integration instance or creates a transient one.
+     * Uses the default/active Integration instance or provided client/instance.
      */
-    static async isAiConnected({ orgId, checkHealth = false, client = null, automationsDb } = {}) {
-        const inst = client || Integration._defaultInstance || new Integration();
-        return await inst.isAiConnected({ orgId, checkHealth, automationsDb });
+    static async isAiConnected({ orgId, client = null } = {}) {
+        const inst = client instanceof Integration
+            ? client
+            : (client ? new Integration({ client }) : Integration._defaultInstance);
+        if (!inst) {
+            throw new Error(
+                "[Integration] Integration is not initialized."
+            );
+        }
+        return await inst.isAiConnected({ orgId });
     }
 
     /**
      * Static helper for getAiModelConfig.
      */
     static async getAiModelConfig({ orgId, provider, client = null, decrypt = true } = {}) {
-        const inst = client || Integration._defaultInstance || new Integration();
+        const inst = client instanceof Integration
+            ? client
+            : (client ? new Integration({ client }) : Integration._defaultInstance);
+        if (!inst) {
+            throw new Error(
+                "[Integration] Integration is not initialized."
+            );
+        }
         return await inst.getAiModelConfig({ orgId, provider, decrypt });
     }
 
@@ -535,7 +551,14 @@ export class Integration {
      * Static helper for getAiIntegrations.
      */
     static async getAiIntegrations({ orgId, client = null, decrypt = true } = {}) {
-        const inst = client || Integration._defaultInstance || new Integration();
+        const inst = client instanceof Integration
+            ? client
+            : (client ? new Integration({ client }) : Integration._defaultInstance);
+        if (!inst) {
+            throw new Error(
+                "[Integration] Integration is not initialized."
+            );
+        }
         return await inst.getAiIntegrations({ orgId, decrypt });
     }
 }
